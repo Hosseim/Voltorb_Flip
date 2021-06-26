@@ -1,0 +1,8 @@
+@font-face {
+	font-family: pkmn;
+	src: url('fonts/pokemon-frlg.ttf') format("truetype");
+}
+
+body {
+  font-family: pkmn;
+} 

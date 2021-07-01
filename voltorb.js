@@ -56,6 +56,8 @@ var SceneVoltorb = new Phaser.Class ({
 
         this.score = 1;
         this.level_max = this.level;
+
+        this.nb_flipped = 0;
     },
 
     preload: function() {
@@ -238,14 +240,22 @@ var SceneVoltorb = new Phaser.Class ({
                 var img = this.physics.add.image(tile.x, tile.y, 'tiles').setOrigin(0,0);
                 img.setFrame(tile.value);
 
-                tile.hidden = false;
+                //TODO: Add animation
+                if (tile.value == 0) {
+                    this.loseGame();
+                }
+                else {
 
-                this.score *= tile.value;
+                    this.nb_flipped++;
+                    tile.hidden = false;
 
-                this.distrib[tile.value]--;
+                    this.score *= tile.value;
 
-                if (this.distrib[2] + this.distrib[3] == 0) {
-                    this.winGame();
+                    this.distrib[tile.value]--;
+
+                    if (this.distrib[2] + this.distrib[3] == 0) {
+                        this.winGame();
+                    }
                 }
             }
         }
@@ -419,7 +429,9 @@ var SceneVoltorb = new Phaser.Class ({
 
         this.events.on('resume', (scene, data) => {
 
-            if (data.choice == 0 && data.level > 1) {
+            console.log(data);
+
+            if (data.choice == 0) {
                 this.scene.restart( {
                     level: Math.min(data.level, this.level_max),
                     restart: true
@@ -496,8 +508,6 @@ var SceneVoltorb = new Phaser.Class ({
 
     winGame: function() {        
         var text = 'Game cleared!';
-        console.log(this.level);
-        console.log(this.level_max);
         text += '\n\n';
         text += 'Level ' + Math.min(this.level_max, this.level+1) + '!';
         text += '\n\nPlay Voltorb Flip level ' + (this.level+1) + ' ?';
@@ -515,7 +525,24 @@ var SceneVoltorb = new Phaser.Class ({
     },
 
     loseGame: function() {
+        var new_level = Math.max(Math.min(this.level, this.nb_flipped), 1);
         var text = 'Game over!';
+        text += '\n\nThe game is back on level ' + new_level + '!';
+
+        var options = [
+            "Rejouer",
+            "Quitter"
+        ];
+
+        var data = {
+            text: text,
+            options: this.options,
+            origin_scene: this.scene,
+            level: new_level,
+        }
+        console.log(this.options);
+        this.scene.pause();
+        this.scene.launch('scene_dialog', data);
     },
 
     getRandomInt: function(min, max) {

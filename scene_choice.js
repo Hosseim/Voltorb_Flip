@@ -13,6 +13,8 @@ const LINE_HEIGHT = 16; //font size + interspace
 const VERTICAL_OFFSET = 9; //blank between top border and first line
 const HORIZONTAL_OFFSET = 16; //blank between left border and first line
 
+const MENU_ITEM_HEIGHT = 24;
+
 export var SceneChoice = new Phaser.Class({
 
     Extends: Phaser.Scene,
@@ -42,20 +44,45 @@ export var SceneChoice = new Phaser.Class({
         this.canvas = this.sys.game.canvas;
         this.load.image('yes_or_no', 'menus/yes_or_no.png');
         this.load.image('select', 'menus/selection.png');
+        this.load.image('menu_item', 'menus/menu_item.png');
+        this.load.image('highlight_item', 'menus/highlight_item.png');
         //make the border transparent
     },
 
     create: function () {
         var x = this.canvas.width - 25;
         var y = this.canvas.height - 45;
-        this.box = this.physics.add.image(x, y, 'yes_or_no').setOrigin(1, 1);
 
-        this.select = this.physics.add.image(
-            x - this.box.width + 8,
-            y - this.box.height + 11,
-            'select').setOrigin(0,0);
+        // this.box = this.physics.add.image(x, y, 'yes_or_no').setOrigin(1, 1);
 
-        this.choice = true;
+        // this.select = this.physics.add.image(
+        //     x - this.box.width + 8,
+        //     y - this.box.height + 11,
+        //     'select').setOrigin(0,0);
+
+        x = this.canvas.width;
+        y = this.canvas.height - 48;
+
+        var nb = this.data.options.length;
+        console.log(nb);
+
+        var rect = this.add.rectangle(x, y, 120, 8 + nb*24, 0x73747b).setOrigin(1,1);
+
+        var items = [];
+
+        x = x - rect.width + 4;
+        y = y - rect.height + 5;
+
+        this.highlight = this.add.image(x, y, 'highlight_item').setOrigin(0,0);
+        this.highlight.setDepth(1);
+
+        for (var i = 0; i < nb; i++) {
+        	items.push(this.add.image(x, y, 'menu_item').setOrigin(0,0));
+        	y += MENU_ITEM_HEIGHT;
+        }
+
+
+        this.choice = 0;
 
         this.input.keyboard.on("keydown", (key) => {
 
@@ -66,13 +93,13 @@ export var SceneChoice = new Phaser.Class({
                 this.scene.resume(this.data.origin_scene.scene.key, {choice: this.choice} );
             }
             
-            else if (key.code == 'ArrowDown' && this.choice) {
-                this.choice = false;
-                this.select.y += LINE_HEIGHT;
+            else if (key.code == 'ArrowDown' && this.choice < nb - 1) {
+                this.choice++;
+                this.highlight.y += MENU_ITEM_HEIGHT;
             }
-            else if (key.code == 'ArrowUp' && !this.choice) {
-                this.choice = true;
-                this.select.y -= LINE_HEIGHT;
+            else if (key.code == 'ArrowUp' && this.choice > 0) {
+                this.choice--;
+                this.highlight.y -= MENU_ITEM_HEIGHT;
             }
         });
     },

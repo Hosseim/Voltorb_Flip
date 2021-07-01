@@ -44,8 +44,6 @@ export var SceneDialog = new Phaser.Class({
     preload: function () {      
         this.canvas = this.sys.game.canvas;
         this.load.image('text_box', 'menus/text_box.png');
-        this.load.image('yes_or_no', 'menus/yes_or_no.png');
-        this.load.image('select', 'menus/select.png');
 
         this.load.spritesheet('waiting_arrow', 'menus/arrow_wait.png',
             {frameWidth: 10, frameHeight: 10} );
@@ -99,63 +97,76 @@ export var SceneDialog = new Phaser.Class({
         // x = x + this.border;
         // y = y + 8 + (this.choice-1)*(this.interspace + this.fontSize);
 
+        this.input.on("pointerdown", (pointer) => {
+            if (pointer.leftButtonDown()) {
+                this.read();
+            }
+        })
 
         this.input.keyboard.on("keydown", (key) => {
 
             //Next line or ends the scene
             if (key.code == 'Space') {
-
-                //If there's more text to display
-                if (this.lines_read < this.data.text.length) {
-                    this.first_line.setText(this.data.text[this.lines_read]);
-                    this.lines_read++;
-
-                    //If the text contains 2 lines
-                    if (this.lines_read < this.data.text.length) {
-                        this.second_line.setText(this.data.text[this.lines_read]);
-                        this.lines_read++;
-                    }
-
-                    //Only one
-                    else {
-                        this.second_line.setVisible(false);
-
-                        this.arrow.x = this.x + this.first_line.width;
-                        this.arrow.y = this.first_line.y;
-                    }
-                }
-                else if (this.data.confirm && !this.hasConfirmed) {
-                    this.scene.pause();
-                    this.scene.launch('scene_choice', {origin_scene: this });
-                }
-                else {
-                    this.scene.stop(scene_key);
-                    this.scene.resume(this.data.origin_scene, {level: 0});
-                }
+                this.read();
             }
         });
 
         //2 parameters necessary to pass data on resume
         this.events.on('resume', (scene, data) => {
-            if (data.choice) {
+            console.log(this.data);
                 scene.scenePlugin.stop(scene_key);
-                console.log(this.data);
                 scene.scenePlugin.resume('scene_voltorb',
-                 { level: Math.min(this.data.level + 1, this.data.level_max) } );
-            }
-            else {
-                this.cameras.main.fadeOut(200);
+                 { 
+                    level: this.data.level,
+                    choice: data.choice
+                     } );
+            
+        //     else {
+        //         this.cameras.main.fadeOut(200);
 
-                this.cameras.main.on('camerafadeoutcomplete', function (c) {
-                    // data.scene.scene.stop();
-        }, this);
-            }
+        //         this.cameras.main.on('camerafadeoutcomplete', function (c) {
+        //             // data.scene.scene.stop();
+        // }, this);
+        //     }
         });
     },
 
     update: function (time, delta)
     {
         //this.pic.rotation += 0.01;
+    },
+
+    read: function() {
+        //If there's more text to display
+        if (this.lines_read < this.data.text.length) {
+            this.first_line.setText(this.data.text[this.lines_read]);
+            this.lines_read++;
+
+            //If the text contains 2 lines
+            if (this.lines_read < this.data.text.length) {
+                this.second_line.setText(this.data.text[this.lines_read]);
+                this.lines_read++;
+                
+                this.arrow.x = this.x + this.second_line.width;
+                this.arrow.y = this.second_line.y;
+            }
+
+            //Only one
+            else {
+                this.second_line.setVisible(false);
+
+                this.arrow.x = this.x + this.first_line.width;
+                this.arrow.y = this.first_line.y;
+            }
+        }
+        else if (this.data.options != undefined) {
+            this.scene.pause();
+            this.scene.launch('scene_choice', {origin_scene: this, options: this.data.options });
+        }
+        else {
+            this.scene.stop(scene_key);
+            this.scene.resume(this.data.origin_scene, {level: 0});
+        }
     },
 
     typeText: function(text, x, y) {

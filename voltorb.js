@@ -547,11 +547,11 @@ var SceneVoltorb = new Phaser.Class ({
         text += '\n\nPlay Voltorb Flip level ' + new_level + ' ?';
     
         var data = {
-                text: text,
-                options: this.options,
-                origin_scene: this.scene,
-                level: new_level,
-                restart: true,
+            text: text,
+            options: this.options,
+            origin_scene: this.scene,
+            level: new_level,
+            restart: true,
         };
 
         // this.cameras.main.fadeOut(200);
@@ -562,7 +562,9 @@ var SceneVoltorb = new Phaser.Class ({
     loseGame: function() {
         var new_level = Math.max(Math.min(this.level, this.nb_flipped), 1);
         var text = 'Game over!';
-        text += '\n\nThe game is back on level ' + new_level + '!';
+        if (new_level < this.level) {
+            text += '\n\nThe game is back on level ' + new_level + '!';
+        }
 
         var options = [
             "Rejouer",

@@ -76,8 +76,10 @@ export var SceneDialog = new Phaser.Class({
 
             this.lines_read++;
 
-            arrow_y = this.y;
-            arrow_x = this.x + this.second_line.width;
+            if (this.second_line.width > 0) {
+                arrow_y = this.y;
+                arrow_x = this.x + this.second_line.width;
+            }
         }
 
         //If there's still more to come
@@ -151,21 +153,28 @@ export var SceneDialog = new Phaser.Class({
             this.first_line.setText(this.data.text[this.lines_read]);
             this.lines_read++;
 
+            this.arrow.x = this.x + this.first_line.width;
+            this.arrow.y = this.first_line.y;
+
             //If the text contains 2 lines
             if (this.lines_read < this.data.text.length) {
-                this.second_line.setText(this.data.text[this.lines_read]);
-                this.lines_read++;
-                
-                this.arrow.x = this.x + this.second_line.width;
-                this.arrow.y = this.second_line.y;
+                var text = this.data.text[this.lines_read];
+                this.second_line.setText(text);
+                console.log(this.second_line);
+                if (this.second_line.width == 0) {
+                    this.lines_read++;
+                }
+
+                else {                
+                    this.arrow.x = this.x + this.second_line.width;
+                    this.arrow.y = this.second_line.y;
+                }
             }
 
             //Only one
             else {
                 this.second_line.setVisible(false);
 
-                this.arrow.x = this.x + this.first_line.width;
-                this.arrow.y = this.first_line.y;
             }
 
             //If that was the end

@@ -104,7 +104,7 @@ export var SceneChoice = new Phaser.Class({
         this.input.keyboard.on("keydown", (key) => {
 
             //Next line or ends the scene
-            if (key.code == 'Enter') {
+            if (key.code == 'Enter' || key.code == 'Space') {
                 this.scene.stop();
                 this.scene.resume(this.data.origin_scene.scene.key, {choice: this.choice} );
             }

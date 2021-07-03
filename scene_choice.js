@@ -64,7 +64,6 @@ export var SceneChoice = new Phaser.Class({
         y = this.canvas.height - 48;
 
         var nb = this.data.options.length;
-        console.log(nb);
 
         var rect = this.add.rectangle(x, y, 120, 8 + nb*24, 0x73747b).setOrigin(1,1);
 
@@ -84,12 +83,29 @@ export var SceneChoice = new Phaser.Class({
 
         this.choice = 0;
 
+        this.input.on("pointerdown", (pointer) => {
+        	if (pointer.leftButtonDown()) {
+                var x = pointer.downX;
+                var y = pointer.downY;
+
+                for (var i in items) {
+                	if (x > items[i].x && x < (items[i].x + items[i].width) &&
+                		y > items[i].y && y < (items[i].y + items[i].height)) {
+                		this.choice = i;
+                		this.highlight.y = items[i].y;
+                		this.scene.stop();
+                		this.scene.resume(this.data.origin_scene.scene.key, {choice: this.choice } );
+                		return;
+                	}
+                }
+            }
+        });
+
         this.input.keyboard.on("keydown", (key) => {
 
             //Next line or ends the scene
             if (key.code == 'Enter') {
-                this.scene.stop(scene_key);
-
+                this.scene.stop();
                 this.scene.resume(this.data.origin_scene.scene.key, {choice: this.choice} );
             }
             

@@ -37,8 +37,6 @@ export var SceneDialog = new Phaser.Class({
         this.select_position = {x: 0, y: 0};
 
         this.data = data;
-
-        console.log(data);
     },
 
     preload: function () {      
@@ -51,6 +49,10 @@ export var SceneDialog = new Phaser.Class({
     },
 
     create: function () {
+
+        console.log("Scene_dialog creation");
+
+
         var box = this.physics.add.image(this.canvas.width/2, this.canvas.height, 'text_box').setOrigin(0.5, 1);
 
         this.x = box.x - box.width/2 + this.horizontalOffset;
@@ -91,6 +93,10 @@ export var SceneDialog = new Phaser.Class({
 
             this.arrow.play("waiting");
         }
+        else if (this.data.options != undefined) {
+            console.log("Starting choice?");
+            this.startChoice();
+        }
 
         //TODO : should not appear on the second line when there's no text
 
@@ -112,14 +118,17 @@ export var SceneDialog = new Phaser.Class({
         });
 
         //2 parameters necessary to pass data on resume
-        this.events.on('resume', (scene, data) => {
-            console.log(this.data);
-                scene.scenePlugin.stop(scene_key);
-                scene.scenePlugin.resume('scene_voltorb',
-                 { 
-                    level: this.data.level,
-                    choice: data.choice
-                     } );
+        this.events.once('resume', (scene, data) => {
+            console.log("Resuming scene_dialog");
+            this.scene.stop();
+            this.scene.resume('scene_voltorb',
+             { 
+                level: this.data.level,
+                choice: data.choice,
+                restart: this.data.restart
+            } );
+
+            // this.events.
             
         //     else {
         //         this.cameras.main.fadeOut(200);
@@ -158,15 +167,26 @@ export var SceneDialog = new Phaser.Class({
                 this.arrow.x = this.x + this.first_line.width;
                 this.arrow.y = this.first_line.y;
             }
+
+            //If that was the end
+            if (this.lines_read == this.data.text.length) {
+                this.arrow.setVisible(false);
+                this.startChoice();
+            }
         }
-        else if (this.data.options != undefined) {
-            this.scene.pause();
-            this.scene.launch('scene_choice', {origin_scene: this, options: this.data.options });
-        }
+        // else if (this.data.options != undefined) {
+        //     this.startChoice();
+        // }
         else {
-            this.scene.stop(scene_key);
+            this.scene.stop();
             this.scene.resume(this.data.origin_scene, {level: 0});
         }
+    },
+
+    startChoice: function() {
+        this.scene.pause();
+        this.scene.launch('scene_choice', {origin_scene: this, options: this.data.options });
+
     },
 
     typeText: function(text, x, y) {

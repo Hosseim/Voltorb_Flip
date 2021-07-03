@@ -43,7 +43,6 @@ var SceneVoltorb = new Phaser.Class ({
 
     init: function(data) {
         this.data = data;
-        console.log(this.data);
         if (this.data.level != null) {
             this.level = this.data.level;
         }
@@ -58,6 +57,8 @@ var SceneVoltorb = new Phaser.Class ({
         this.level_max = this.level;
 
         this.nb_flipped = 0;
+
+        this.id_dialog = 0;
     },
 
     preload: function() {
@@ -87,6 +88,9 @@ var SceneVoltorb = new Phaser.Class ({
     },
 
     create: function() {
+        console.log("CREATE VOLTORB.JS");
+
+
         this.main = this.physics.add.image(0,0, 'main').setOrigin(0,0);
 
         for (var i = 0; i <= NB_ROWS; i++) {
@@ -98,6 +102,8 @@ var SceneVoltorb = new Phaser.Class ({
                 }
             }
         }
+
+        //
         
         this.distrib = this.getRandomDistribution();
 
@@ -125,17 +131,20 @@ var SceneVoltorb = new Phaser.Class ({
         for (var i = 0; i < NB_COLUMNS; i++) {
             var sum_pts = 0, sum_v = 0;
 
-            for (var j = 0; j < NB_ROWS; j++) {
-                this.grid[i][j].playable = (i != NB_COLUMNS && j != NB_ROWS);
-                this.grid[i][j].hidden = (i != NB_COLUMNS && j != NB_ROWS);
+            if (this.data.restart) {
+                for (var j = 0; j < NB_ROWS; j++) {
+                    this.grid[i][j].playable = (i != NB_COLUMNS && j != NB_ROWS);
+                    this.grid[i][j].hidden = (i != NB_COLUMNS && j != NB_ROWS);
 
-                if (this.grid[i][j].value == 0) {
-                    sum_v++;
-                }
-                else {
-                    sum_pts += this.grid[i][j].value;
+                    if (this.grid[i][j].value == 0) {
+                        sum_v++;
+                    }
+                    else {
+                        sum_pts += this.grid[i][j].value;
+                    }
                 }
             }
+
             this.grid[i][NB_ROWS].nb_voltorbs = sum_v;
             this.grid[i][NB_ROWS].nb_pts = sum_pts;
 
@@ -145,12 +154,14 @@ var SceneVoltorb = new Phaser.Class ({
         for (var j = 0; j < NB_ROWS; j++) {
             var sum_pts = 0, sum_v = 0;
 
-            for (var i = 0; i < NB_COLUMNS; i++) {
-                if (this.grid[i][j].value == 0) {
-                    sum_v++;
-                }
-                else {
-                    sum_pts += this.grid[i][j].value;
+            if (this.data.restart) {
+                for (var i = 0; i < NB_COLUMNS; i++) {
+                    if (this.grid[i][j].value == 0) {
+                        sum_v++;
+                    }
+                    else {
+                        sum_pts += this.grid[i][j].value;
+                    }
                 }
             }
             this.grid[NB_COLUMNS][j].nb_voltorbs = sum_v;
@@ -163,7 +174,7 @@ var SceneVoltorb = new Phaser.Class ({
 
             this.options = [
                     "Jouer",
-                    "Informations",
+                    // "Informations",
                     "Quitter"
                 ];
 
@@ -173,12 +184,12 @@ var SceneVoltorb = new Phaser.Class ({
                 options: this.options,
                 origin_scene: this,
                 level: 1,
+                restart: false,
             };
 
             this.scene.pause();
             this.scene.launch('scene_dialog', data);
         }
-
 
         //Set and highlight the current active tile to flip
         this.current = {i: 0, j: 0};
@@ -197,11 +208,9 @@ var SceneVoltorb = new Phaser.Class ({
         this.highlight_memo.setDepth(2);
         this.highlight_memo.setVisible(false);
 
+
         var border = 4;
-
-
-        //TODO: pas besoin de sprite 'memos', juste 2 jeux de cases 0/1/2/3 pour activé/désactivé
-
+        //add memo box
         this.memo = this.physics.add.image(MEMO_POS.X, MEMO_POS.Y, 'memo_box').setOrigin(0,0);
         this.memo.is_open = false;
 
@@ -215,7 +224,7 @@ var SceneVoltorb = new Phaser.Class ({
         }
         this.memo.setVisible(this.memo.is_open);
 
-
+        //Add memo numbers and set them invisible
         const tile_border = 3;
         for (var i = 0; i < NB_COLUMNS; i++) {
             for (var j = 0; j < NB_ROWS; j++) {
@@ -262,7 +271,7 @@ var SceneVoltorb = new Phaser.Class ({
 
         const clickOnTile = (x, y) => {
 
-            console.log("(" + x + ", " + y + ")");
+            // console.log("(" + x + ", " + y + ")");
 
             //Clicking on "OPEN MEMO"
             if (x > OPEN_MEMO_POS.X && x < OPEN_MEMO_POS.X + OPEN_MEMO_SIZE.X 
@@ -293,7 +302,6 @@ var SceneVoltorb = new Phaser.Class ({
             //Clicking on memos
             else if (this.memo.is_open && x > MEMO_POS.X && x < MEMO_POS.X + this.memo.width 
                 && y > MEMO_POS.Y && y < MEMO_POS.Y + this.memo.height) {
-                console.log("clicking on memo!");
                 //Identify which 
 
                 var i = this.current.i;
@@ -328,25 +336,7 @@ var SceneVoltorb = new Phaser.Class ({
                             //     return;
                             // }
 
-                            for (var k = 0; k < 4; k++) {
-                                this.memo.tiles[k].setVisible(false);
-                            }
-                            this.current.i = i;
-                            this.current.j = j;
-
-                            this.highlight_memo.x = this.grid[i][j].x;
-                            this.highlight_memo.y = this.grid[i][j].y;
-
-                            this.highlight.x = this.grid[i][j].x;
-                            this.highlight.y = this.grid[i][j].y;
-
-                            if (this.memo.is_open) {
-                                for (var k = 0; k < 4; k++) {
-                                    if (this.grid[i][j].memo[k].visible) {
-                                        this.memo.tiles[k].setVisible(true);
-                                    }
-                                }
-                            }
+                            this.initMemoIndexes(i, j);
 
                             if (!this.memo.is_open) {
                                 flip();
@@ -388,6 +378,12 @@ var SceneVoltorb = new Phaser.Class ({
                         this.current.i--;
                         this.highlight_memo.x -= (INTERSPACE + SQUARE);
                         this.highlight.x -= (INTERSPACE + SQUARE);
+
+                        if (this.memo.is_open) {
+                            for (var k = 0; k < 4; k++) {
+                                this.initMemoIndexes(this.current.i, this.current.j);
+                            }
+                        }
                     }
                     break;
 
@@ -397,6 +393,12 @@ var SceneVoltorb = new Phaser.Class ({
                         this.current.j--;
                         this.highlight_memo.y -= (INTERSPACE + SQUARE);
                         this.highlight.y -= (INTERSPACE + SQUARE);
+
+                        if (this.memo.is_open) {
+                            for (var k = 0; k < 4; k++) {
+                                this.initMemoIndexes(this.current.i, this.current.j);
+                            }
+                        }
                     }
                     break;
 
@@ -408,6 +410,12 @@ var SceneVoltorb = new Phaser.Class ({
                         this.current.i++;
                         this.highlight_memo.x += (INTERSPACE + SQUARE);
                         this.highlight.x += (INTERSPACE + SQUARE);
+
+                        if (this.memo.is_open) {
+                            for (var k = 0; k < 4; k++) {
+                                this.initMemoIndexes(this.current.i, this.current.j);
+                            }
+                        }
                     }
                     break;
 
@@ -419,6 +427,12 @@ var SceneVoltorb = new Phaser.Class ({
                         this.current.j++;
                         this.highlight_memo.y += (INTERSPACE + SQUARE);
                         this.highlight.y += (INTERSPACE + SQUARE);
+
+                        if (this.memo.is_open) {
+                            for (var k = 0; k < 4; k++) {
+                                this.initMemoIndexes(this.current.i, this.current.j);
+                            }
+                        }
                     }
                     break;
 
@@ -427,20 +441,16 @@ var SceneVoltorb = new Phaser.Class ({
             }
         });
 
-        this.events.on('resume', (scene, data) => {
-
-            console.log(data);
-
+        this.events.once('resume', (scene, data) => {
             if (data.choice == 0) {
-                this.scene.restart( {
+                // this.scene.stop();
+                this.scene.restart( 
+                {
                     level: Math.min(data.level, this.level_max),
                     restart: true
                 });
             }
-            else if (data.choice == 1) {
-                //
-            }
-            else if (data.choice == 2) {
+            else {
                 this.cameras.main.fadeOut(100);
                 this.cameras.main.on("camerafadeoutcomplete", () => {
                     this.scene.stop();
@@ -478,6 +488,29 @@ var SceneVoltorb = new Phaser.Class ({
         //
     },
 
+    initMemoIndexes: function(i, j) {
+
+        for (var k = 0; k < 4; k++) {
+            this.memo.tiles[k].setVisible(false);
+        }
+        this.current.i = i;
+        this.current.j = j;
+
+        this.highlight_memo.x = this.grid[i][j].x;
+        this.highlight_memo.y = this.grid[i][j].y;
+
+        this.highlight.x = this.grid[i][j].x;
+        this.highlight.y = this.grid[i][j].y;
+
+        if (this.memo.is_open) {
+            for (var k = 0; k < 4; k++) {
+                if (this.grid[i][j].memo[k].visible) {
+                    this.memo.tiles[k].setVisible(true);
+                }
+            }
+        }
+    },
+
     addIndexes: function(i, j) {
         var fd = this.physics.add.sprite(
             this.grid[i][j].x + FIRST_DIGIT_NB_PTS.X, 
@@ -508,15 +541,17 @@ var SceneVoltorb = new Phaser.Class ({
 
     winGame: function() {        
         var text = 'Game cleared!';
+        var new_level = Math.min(this.level_max, this.level+1); 
         text += '\n\n';
-        text += 'Level ' + Math.min(this.level_max, this.level+1) + '!';
-        text += '\n\nPlay Voltorb Flip level ' + (this.level+1) + ' ?';
+        text += 'Level ' + new_level + '!';
+        text += '\n\nPlay Voltorb Flip level ' + new_level + ' ?';
     
         var data = {
                 text: text,
                 options: this.options,
                 origin_scene: this.scene,
-                level: this.level+1,
+                level: new_level,
+                restart: true,
         };
 
         // this.cameras.main.fadeOut(200);
@@ -539,6 +574,7 @@ var SceneVoltorb = new Phaser.Class ({
             options: this.options,
             origin_scene: this.scene,
             level: new_level,
+            restart: true,
         }
         console.log(this.options);
         this.scene.pause();

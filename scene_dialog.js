@@ -49,10 +49,6 @@ export var SceneDialog = new Phaser.Class({
     },
 
     create: function () {
-
-        console.log("Scene_dialog creation");
-
-
         var box = this.physics.add.image(this.canvas.width/2, this.canvas.height, 'text_box').setOrigin(0.5, 1);
 
         this.x = box.x - box.width/2 + this.horizontalOffset;
@@ -96,7 +92,6 @@ export var SceneDialog = new Phaser.Class({
             this.arrow.play("waiting");
         }
         else if (this.data.options != undefined) {
-            console.log("Starting choice?");
             this.startChoice();
         }
 
@@ -121,7 +116,6 @@ export var SceneDialog = new Phaser.Class({
 
         //2 parameters necessary to pass data on resume
         this.events.once('resume', (scene, data) => {
-            console.log("Resuming scene_dialog");
             this.scene.stop();
             this.scene.resume('scene_voltorb',
              { 

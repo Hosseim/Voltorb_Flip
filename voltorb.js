@@ -88,8 +88,6 @@ var SceneVoltorb = new Phaser.Class ({
     },
 
     create: function() {
-        console.log("CREATE VOLTORB.JS");
-
 
         this.main = this.physics.add.image(0,0, 'main').setOrigin(0,0);
 
@@ -173,9 +171,9 @@ var SceneVoltorb = new Phaser.Class ({
         if (!this.data.restart) {
 
             this.options = [
-                    "Jouer",
+                    "Play",
                     // "Informations",
-                    "Quitter"
+                    "Quit"
                 ];
 
             var data = {
@@ -243,6 +241,8 @@ var SceneVoltorb = new Phaser.Class ({
             }
         }
 
+        const gameOver = this.loseGame;
+
         const flip = () => {
             var tile = this.grid[this.current.i][this.current.j];
             if (tile.hidden) {
@@ -251,6 +251,7 @@ var SceneVoltorb = new Phaser.Class ({
 
                 //TODO: Add animation
                 if (tile.value == 0) {
+                    // var timer = this.time.delayedCall(400, this.loseGame);  // delay in ms
                     this.loseGame();
                 }
                 else {
@@ -300,6 +301,7 @@ var SceneVoltorb = new Phaser.Class ({
             }
 
             //Clicking on memos
+            //TODO: add possibility to select several tiles at the same time with Ctrl
             else if (this.memo.is_open && x > MEMO_POS.X && x < MEMO_POS.X + this.memo.width 
                 && y > MEMO_POS.Y && y < MEMO_POS.Y + this.memo.height) {
                 //Identify which 
@@ -560,15 +562,28 @@ var SceneVoltorb = new Phaser.Class ({
     },
 
     loseGame: function() {
+    	for (var i = 0; i < NB_COLUMNS; i++) {
+    		for (var j = 0; j < NB_ROWS; j++) {
+    			var tile = this.grid[i][j];
+    			if (tile.hidden) {
+    				var img = this.physics.add.image(tile.x, tile.y, 'tiles').setOrigin(0,0);
+                	img.setFrame(tile.value);
+    			}
+    		}
+    	}
+    	//TODO: add animation
+
         var new_level = Math.max(Math.min(this.level, this.nb_flipped), 1);
         var text = 'Game over!';
         if (new_level < this.level) {
             text += '\n\nThe game is back on level ' + new_level + '!';
         }
 
+        text += '\n\nPlay Voltorb Flip level ' + new_level + '?';
+
         var options = [
-            "Rejouer",
-            "Quitter"
+            "Play again",
+            "Quit"
         ];
 
         var data = {
@@ -578,7 +593,9 @@ var SceneVoltorb = new Phaser.Class ({
             level: new_level,
             restart: true,
         }
-        console.log(this.options);
+
+        console.log(this);
+        console.log(this.scene);
         this.scene.pause();
         this.scene.launch('scene_dialog', data);
     },

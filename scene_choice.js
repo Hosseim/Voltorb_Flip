@@ -1,9 +1,14 @@
 var scene_key = 'scene_choice';
 
-const DIALOG_COLOR = '#3050C8';
 const LINE_SIZE = 37;
 
-const TEXT_CONFIG = { fontFamily: 'pkmn', color: DIALOG_COLOR, fontSize: '10px' };
+const TEXT_CONFIG = { 
+	fontFamily: 'pkmn', 
+	color: '#FFFFFF', 
+	fontSize: '12px',
+	textShadow: '2px 0 0 black, -2px 0 0 black, 0 2px 0 black, 0 -2px 0 black, 1px 1px black, -1px -1px 0 black, 1px -1px 0 black, -1px 1px 0 black',
+};
+
 
 const BORDER = 5; //thickness of the border
 const FONT_SIZE = 10;
@@ -77,6 +82,10 @@ export var SceneChoice = new Phaser.Class({
 
         for (var i = 0; i < nb; i++) {
         	items.push(this.add.image(x, y, 'menu_item').setOrigin(0,0));
+        	var x_text = x + items[i].width/2;
+        	var y_text = y + items[i].height/2;
+        	this.add.text(x_text, y_text, this.data.options[i], 
+                    TEXT_CONFIG).setOrigin(0.5, 0.5);
         	y += MENU_ITEM_HEIGHT;
         }
 

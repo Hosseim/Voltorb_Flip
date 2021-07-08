@@ -37,7 +37,7 @@ var SceneVoltorb = new Phaser.Class ({
 
     Extends: Phaser.Scene, 
 
-    initialize: function SceneBattle() {
+    initialize: function SceneVoltorb() {
         Phaser.Scene.call(this, { key: 'scene_voltorb' });
     },
 
@@ -101,16 +101,19 @@ var SceneVoltorb = new Phaser.Class ({
             }
         }
 
+        this.distribution = this.cache.json.get('distribution');
+        this.level_max = this.distribution.length - 1;
+        console.log(this.distribution);
         //
         
-        this.distrib = this.getRandomDistribution();
-
-        var sum = this.distrib[2] + this.distrib[3] + this.distrib[0];
-        var x1 = NB_ROWS*NB_COLUMNS - sum;
+        this.res = this.getRandomDistribution();
+        this.distrib = { 0: this.res[0], 2: this.res[2], 3: this.res[3] };
 
         this.setValue(2, this.distrib[2]);
         this.setValue(3, this.distrib[3]);
         this.setValue(0, this.distrib[0]);
+
+        console.log(this.distrib);
 
         // var stats = new Array(10).fill(0);
         // for (var i = 0; i < 10000; i++) {
@@ -478,7 +481,7 @@ var SceneVoltorb = new Phaser.Class ({
             while (!attributed) {
                 var i = this.getRandomInt(0, NB_ROWS);
                 var j = this.getRandomInt(0, NB_COLUMNS);
-                if (this.grid[i][j].value == 1 || this.grid[i][j].value == undefined) {
+                if (this.grid[i][j].value == 1) {
                     this.grid[i][j].value = value;
                     attributed = true;
                 }
@@ -594,8 +597,6 @@ var SceneVoltorb = new Phaser.Class ({
             restart: true,
         }
 
-        console.log(this);
-        console.log(this.scene);
         this.scene.pause();
         this.scene.launch('scene_dialog', data);
     },
@@ -605,13 +606,10 @@ var SceneVoltorb = new Phaser.Class ({
     },
 
     getRandomDistribution: function() {
-        var distribs = this.cache.json.get('distribution');
-
-        this.level_max = distribs.length - 1;
-
-        var index = Math.floor(Math.random()*distribs[this.level].length);
-
-        return distribs[this.level][index];
+        var nb_possibilities = this.distribution[this.level].length;
+        var index = Math.floor(Math.random()*nb_possibilities);
+        console.log(index);
+        return this.distribution[this.level][index];
     }
 });
 

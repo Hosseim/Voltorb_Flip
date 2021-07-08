@@ -154,7 +154,6 @@ export var SceneDialog = new Phaser.Class({
             if (this.lines_read < this.data.text.length) {
                 var text = this.data.text[this.lines_read];
                 this.second_line.setText(text);
-                console.log(this.second_line);
                 if (this.second_line.width == 0) {
                     this.lines_read++;
                 }

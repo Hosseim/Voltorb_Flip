@@ -113,8 +113,6 @@ var SceneVoltorb = new Phaser.Class ({
         this.setValue(3, this.distrib[3]);
         this.setValue(0, this.distrib[0]);
 
-        console.log(this.distrib);
-
         // var stats = new Array(10).fill(0);
         // for (var i = 0; i < 10000; i++) {
         //     var j = this.getRandomInt(0,10);
@@ -281,6 +279,7 @@ var SceneVoltorb = new Phaser.Class ({
             if (x > OPEN_MEMO_POS.X && x < OPEN_MEMO_POS.X + OPEN_MEMO_SIZE.X 
                 && y > OPEN_MEMO_POS.Y && y < OPEN_MEMO_POS.Y + OPEN_MEMO_SIZE.Y) {
 
+                //TODO: Add click animation and modify label "open/close"
                 //NOT ON ALREADY DISCOVERED TILES ?
                 this.memo.is_open = !this.memo.is_open;
 
@@ -291,9 +290,13 @@ var SceneVoltorb = new Phaser.Class ({
                     this.memo.setVisible(true);
                     this.highlight_memo.x = this.grid[this.current.i][this.current.j].x;
                     this.highlight_memo.y = this.grid[this.current.i][this.current.j].y;
+
+                    for (var k = 0; k < 4; k++) {
+                        var v = this.grid[this.current.i][this.current.j].memo[k].visible;
+                        this.memo.tiles[k].setVisible(v);
+                    }
                 }
                 else {
-
                     for (var k = 0; k < 4; k++) {
                         this.memo.tiles[k].setVisible(false);
                     }
@@ -608,7 +611,6 @@ var SceneVoltorb = new Phaser.Class ({
     getRandomDistribution: function() {
         var nb_possibilities = this.distribution[this.level].length;
         var index = Math.floor(Math.random()*nb_possibilities);
-        console.log(index);
         return this.distribution[this.level][index];
     }
 });

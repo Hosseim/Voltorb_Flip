@@ -1,23 +1,12 @@
 import {SceneDialog} from './scene_dialog.js';
 import {SceneChoice} from './scene_choice.js';
 
-const scene_key = 'scene_voltorb';
-
-const BACKGROUND_COLOR = '28a068';
-
-const BORDER = 6;
-const SQUARE = 28;
-const INTERSPACE = 4;
-const NB_COLUMNS = 5;
+const FIRST_TILE_POSITION = {X: 6, Y: 6};
+const INTERSPACE = {X: 4, Y: 4};
+const TILE_SIZE = {WIDTH: 28, HEIGHT: 28};
+const TILE_BORDER = 4;
 const NB_ROWS = 5;
-
-const NB_VOLTORBS_GAME = 6;
-
-
-const ALPHABET = {FRAMEWIDTH: 6, FRAMEHEIGHT: 13};
-
-const OPEN_MEMO_POS = {X: 198, Y: 10};
-const OPEN_MEMO_SIZE = {X: 52, Y: 60};
+const NB_COLUMNS = 5;
 
 const MEMO_POS = {X: 198, Y: 76};
 const MEMO_TILE_POS = [
@@ -26,14 +15,15 @@ const MEMO_TILE_POS = [
     {X: 202, Y: 104},
     {X: 226, Y: 104}
 ];
+const MEMO_TILE_SIZE = {X: 24, Y: 24};
+const OPEN_MEMO_POS = {X: 198, Y: 10};
+const OPEN_MEMO_SIZE = {X: 52, Y: 60};
 
-const MEMO_BORDER = 4;
-const MEMO_TILE_SIZE = 24;
-// const MEMO_SIZE = {X: 198, Y: 76};
 
 const FIRST_DIGIT_NB_PTS = {X: -3, Y: -12};
 const SECOND_DIGIT_NB_PTS = {X: 5, Y: -12};
 const NB_VOLTORBS_INDEX = {X: 5, Y: 1};
+
 
 var SceneVoltorb = new Phaser.Class ({
 
@@ -44,7 +34,12 @@ var SceneVoltorb = new Phaser.Class ({
     },
 
     init: function(data) {
+        this.initData(data);
+    },
+
+    initData: function(data) {
         this.data = data;
+
         if (this.data.level != null) {
             this.level = this.data.level;
         }
@@ -53,10 +48,11 @@ var SceneVoltorb = new Phaser.Class ({
         }
         // this.cameras.main.setBackgroundColor(BACKGROUND_COLOR);
 
+        //tiles grid
         this.grid = [];
-        for (var i = 0; i <= NB_ROWS; i++) {
+        for (var i = 0; i <= NB_COLUMNS; i++) {
             this.grid[i] = [];
-            for (var j = 0; j <= NB_COLUMNS; j++) {
+            for (var j = 0; j <= NB_ROWS; j++) {
                 this.grid[i][j] = {
                     value: 1,
                     memo: [],
@@ -64,12 +60,15 @@ var SceneVoltorb = new Phaser.Class ({
                 }
             }
         }
+        this.current = {i: 0, j: 0};
+
         //tiles being animated 
         this.tiles_to_process = [];
 
         this.score = 1;
         this.level_max = this.level;
 
+        //nb voltorbs flipped over so far
         this.nb_flipped = 0;
 
         this.id_dialog = 0;
@@ -79,14 +78,9 @@ var SceneVoltorb = new Phaser.Class ({
     preload: function() {
         this.canvas = this.sys.game.canvas;
 
-        this.load.spritesheet('alphabet_white_5', 'alphabets/alphabet_white_5.png', {frameWidth: 5, frameHeight: 8});
-        this.load.spritesheet('alphabet_white_6', 'alphabets/alphabet_white_6.png', {frameWidth: ALPHABET.FRAMEWIDTH, frameHeight: ALPHABET.FRAMEHEIGHT});
-        this.load.spritesheet('alphabet_grey_5', 'alphabets/alphabet_grey_5.png', {frameWidth: 5, frameHeight: 8});
-        this.load.spritesheet('alphabet_grey_6', 'alphabets/alphabet_grey_6.png', {frameWidth: ALPHABET.FRAMEWIDTH, frameHeight: ALPHABET.FRAMEHEIGHT});
-
         this.load.image('main', 'voltorb_flip.png');
-        this.load.image('atlas2', 'atlas.png');
-        this.load.atlas('atlas', 'atlas.png', 'atlas.json');
+        this.load.image('atlas', 'atlas.png');
+        this.load.atlas('atlas_main', 'atlas.png', 'atlas.json');
         this.load.atlas('atlas_anim', 'atlas_anim.png', 'atlas.json');
 
         this.load.spritesheet('digits', 'digits.png',
@@ -101,182 +95,74 @@ var SceneVoltorb = new Phaser.Class ({
 
         this.main = this.physics.add.image(0,0, 'main').setOrigin(0,0);
 
-        var distribution = this.cache.json.get('distribution');
+        this.distribution = this.cache.json.get('distribution');
         this.animations = this.cache.json.get('animations');
-        this.level_max = distribution.length - 1;
-        
-        this.nb_total_tils = this.getRandomDistribution(distribution);
-        this.distrib = { 0: this.nb_total_tils[0], 2: this.nb_total_tils[2], 3: this.nb_total_tils[3] };
-
-        this.setValue(2, this.distrib[2]);
-        this.setValue(3, this.distrib[3]);
-        this.setValue(0, this.distrib[0]);
-
-
-        for (var i = 0; i <= NB_COLUMNS; i++) {
-            for (var j = 0; j <= NB_ROWS; j++) {
-                var x = BORDER + i*(SQUARE + INTERSPACE) + SQUARE/2;
-                var y = BORDER + j*(SQUARE + INTERSPACE) + SQUARE/2;
-
+        this.level_max = this.distribution.length - 1;
+           
+        var x = FIRST_TILE_POSITION.X;
+        var y = FIRST_TILE_POSITION.Y;
+        for (var i = 0; i < NB_COLUMNS; i++) {
+            for (var j = 0; j < NB_ROWS; j++) {
+                
                 var t = this.grid[i][j];
-                t.x = x;
-                t.y = y;
+                t.x = x + TILE_SIZE.WIDTH/2; //origin centered
+                t.y = y + TILE_SIZE.HEIGHT/2; //origin centered
 
-                t.sprite = this.physics.add.sprite(x, y, 'atlas', 'tile_' + t.value);
-                t.sprite.setVisible(false);
-                t.sprite.setDepth(3);
-
-                t.flipping_number = this.physics.add.sprite(x, y, 'atlas', 'flip_' + t.value);
-                t.flipping_number.setVisible(false);
-
-                t.spark = this.physics.add.sprite(t.x, t.y, 'atlas_anim', 'spark_1');
-                t.spark.setVisible(false);
-                t.spark.setDepth(4);
-                t.frame = 0;
-
-                if (t.value == 0) {
-                    t.explode = this.physics.add.sprite(t.x, t.y, 'atlas_anim', 'explode_1');
-                    t.explode.setVisible(false);
-                    t.explode.setDepth(4);
-                }
-            }
+                t.sprite = this.physics.add.sprite(t.x, t.y, 'atlas_main', 'hidden');
+                t.sprite.setDepth(2);
+                y += TILE_SIZE.HEIGHT + INTERSPACE.Y;
+            }            
+            x += TILE_SIZE.WIDTH + INTERSPACE.X;
+            y = FIRST_TILE_POSITION.Y;
         }
 
-        //Count each row and column value and nb of voltorb/bombs
+        //Count each row and column value and nb of voltorb/bombs to fill indexes
         for (var i = 0; i < NB_COLUMNS; i++) {
-            var sum_pts = 0, sum_v = 0;
-
-            if (this.data.restart) {
-                for (var j = 0; j < NB_ROWS; j++) {
-                    this.grid[i][j].playable = (i != NB_COLUMNS && j != NB_ROWS);
-                    this.grid[i][j].hidden = (i != NB_COLUMNS && j != NB_ROWS);
-
-                    if (this.grid[i][j].value == 0) {
-                        sum_v++;
-                    }
-                    else {
-                        sum_pts += this.grid[i][j].value;
-                    }
-                }
-            }
-
-            this.grid[i][NB_ROWS].nb_voltorbs = sum_v;
-            this.grid[i][NB_ROWS].nb_pts = sum_pts;
+            this.grid[i][NB_ROWS].x = FIRST_TILE_POSITION.X + (INTERSPACE.X + TILE_SIZE.WIDTH)*i;
+            this.grid[i][NB_ROWS].y = FIRST_TILE_POSITION.Y + (INTERSPACE.Y + TILE_SIZE.HEIGHT)*NB_ROWS;
 
             this.addIndexes(i, NB_ROWS); 
         }
 
         for (var j = 0; j < NB_ROWS; j++) {
-            var sum_pts = 0, sum_v = 0;
-
-            if (this.data.restart) {
-                for (var i = 0; i < NB_COLUMNS; i++) {
-                    if (this.grid[i][j].value == 0) {
-                        sum_v++;
-                    }
-                    else {
-                        sum_pts += this.grid[i][j].value;
-                    }
-                }
-            }
-            this.grid[NB_COLUMNS][j].nb_voltorbs = sum_v;
-            this.grid[NB_COLUMNS][j].nb_pts = sum_pts;
+            this.grid[NB_COLUMNS][j].x = FIRST_TILE_POSITION.X + (INTERSPACE.X + TILE_SIZE.WIDTH)*NB_COLUMNS;
+            this.grid[NB_COLUMNS][j].y = FIRST_TILE_POSITION.Y + (INTERSPACE.Y + TILE_SIZE.HEIGHT)*j;
 
             this.addIndexes(NB_COLUMNS, j);
         }
 
-        //Set the start menu and the dialog
-        if (!this.data.restart) {
-
-            this.options = [
-                    "Play",
-                    // "Informations",
-                    "Quit"
-                ];
-
-            var dialog = [];
-
-            dialog.push({
-                text: "Play Voltorb Flip level 1?", 
-                selection_type: 0, //No selection
-                handler: null,
-            });
-
-            var data_dialog = {
-                text: 'Play Voltorb Flip level ' + this.level + '?',
-                // confirm: false,
-                options: this.options,
-                origin_scene: this,
-                level: 1,
-                restart: false,
-                dialog: dialog
-            };
-
-            var dialog_scene = this.scene.add('scene_dialog', SceneDialog, false, data_dialog);
-
-            this.scene.pause();
-            this.scene.launch('scene_dialog', data_dialog);
-        }
-
-        //Set and highlight the current active tile to flip
-        this.current = {i: 0, j: 0};
-        this.highlight = this.physics.add.sprite(
-            this.grid[0][0].x,
-            this.grid[0][0].y,
-            'atlas', 'highlight_red'
-            );
-        this.highlight.setDepth(2);
-
-
-        this.highlight_memo = this.physics.add.image(
-            this.highlight.x, 
-            this.highlight.y,
-            'atlas',
-            'highlight_yellow'
-            );
-        this.highlight_memo.setDepth(2);
-        this.highlight_memo.setVisible(false);
-
-        var border = 4;
         //add memo box
-        this.memo = this.physics.add.sprite(MEMO_POS.X, MEMO_POS.Y, 'atlas', 'memo_box').setOrigin(0,0);
+        this.memo = this.physics.add.sprite(MEMO_POS.X, MEMO_POS.Y, 'atlas_main', 'memo_box').setOrigin(0,0);
         this.memo.is_open = false;
 
         this.memo.tiles = [];
 
         for (var k = 0; k < 4; k++) {
             this.memo.tiles.push(
-                this.physics.add.sprite(MEMO_TILE_POS[k].X, MEMO_TILE_POS[k].Y, 'atlas', 'tile_' + k + '_memo').setOrigin(0,0)
+                this.physics.add.sprite(MEMO_TILE_POS[k].X, MEMO_TILE_POS[k].Y, 'atlas_main', 'tile_' + k + '_memo').setOrigin(0,0).setVisible(false)
             );
-            this.memo.tiles[k].setVisible(false);
         }
-        this.memo.setVisible(this.memo.is_open);
+        this.memo.setVisible(false);
 
         //Add memo numbers and set them invisible
-        const tile_border = 3;
         for (var i = 0; i < NB_COLUMNS; i++) {
             for (var j = 0; j < NB_ROWS; j++) {
-                var x0 = this.grid[i][j].x;
-                var x1 = this.grid[i][j].x + SQUARE - tile_border;
-                var y0 = this.grid[i][j].y;
-                var y1 = this.grid[i][j].y + SQUARE - tile_border;
-                this.grid[i][j].memo.push(this.physics.add.sprite(x0, y0, 'atlas', 'index_0_memo').setOrigin(1,1));
-                this.grid[i][j].memo.push(this.physics.add.sprite(x0, y0, 'atlas', 'index_1_memo').setOrigin(0,1));
-                this.grid[i][j].memo.push(this.physics.add.sprite(x0, y0, 'atlas', 'index_2_memo').setOrigin(1,0));
-                this.grid[i][j].memo.push(this.physics.add.sprite(x0, y0, 'atlas', 'index_3_memo').setOrigin(0,0));
-
+                var x0 = this.grid[i][j].x - TILE_SIZE.WIDTH/2 + TILE_BORDER;
+                var x1 = this.grid[i][j].x + TILE_SIZE.WIDTH/2 - TILE_BORDER;
+                var y0 = this.grid[i][j].y - TILE_SIZE.HEIGHT/2 + TILE_BORDER;
+                var y1 = this.grid[i][j].y + TILE_SIZE.HEIGHT/2 - TILE_BORDER;
+                this.grid[i][j].memo.push(this.physics.add.sprite(x0, y0, 'atlas_main', 'index_0_memo').setOrigin(0,0).setVisible(false).setDepth(3));
+                this.grid[i][j].memo.push(this.physics.add.sprite(x1, y0, 'atlas_main', 'index_1_memo').setOrigin(1,0).setVisible(false).setDepth(3));
+                this.grid[i][j].memo.push(this.physics.add.sprite(x0, y1, 'atlas_main', 'index_2_memo').setOrigin(0,1).setVisible(false).setDepth(3));
+                this.grid[i][j].memo.push(this.physics.add.sprite(x1, y1, 'atlas_main', 'index_3_memo').setOrigin(1,1).setVisible(false).setDepth(3));
+/*
                 for (var k = 0; k < 4; k++) {
                     this.grid[i][j].memo[k].setVisible(false);
-                }
+                }*/
             }
         }
 
-        const gameOver = this.loseGame;
-
-        const clickOnTile = (x, y) => {
-
-            console.log("(" + x + ", " + y + ")");
-
+        const clickHandler = (x, y) => {
             //Clicking on "OPEN MEMO"
             if (x > OPEN_MEMO_POS.X && x < OPEN_MEMO_POS.X + OPEN_MEMO_SIZE.X 
                 && y > OPEN_MEMO_POS.Y && y < OPEN_MEMO_POS.Y + OPEN_MEMO_SIZE.Y) {
@@ -284,27 +170,20 @@ var SceneVoltorb = new Phaser.Class ({
                 //TODO: Add click animation and modify label "open/close"
                 //NOT ON ALREADY DISCOVERED TILES ?
                 this.memo.is_open = !this.memo.is_open;
+                this.memo.setVisible(this.memo.is_open);
 
                 if (this.memo.is_open) {
-                    this.highlight.setVisible(false);
-                    this.highlight_memo.setVisible(true);
-
-                    this.memo.setVisible(true);
-                    this.highlight_memo.x = this.grid[this.current.i][this.current.j].x;
-                    this.highlight_memo.y = this.grid[this.current.i][this.current.j].y;
-
                     for (var k = 0; k < 4; k++) {
                         var v = this.grid[this.current.i][this.current.j].memo[k].visible;
                         this.memo.tiles[k].setVisible(v);
                     }
+                    this.highlight.setFrame('highlight_yellow');
                 }
                 else {
                     for (var k = 0; k < 4; k++) {
                         this.memo.tiles[k].setVisible(false);
                     }
-                    this.highlight_memo.setVisible(false);
-                    this.highlight.setVisible(true);
-                    this.memo.setVisible(false);
+                    this.highlight.setFrame('highlight_red');
                 }
             }
 
@@ -312,46 +191,45 @@ var SceneVoltorb = new Phaser.Class ({
             //TODO: add possibility to select several tiles at the same time with Ctrl
             else if (this.memo.is_open && x > MEMO_POS.X && x < MEMO_POS.X + this.memo.width 
                 && y > MEMO_POS.Y && y < MEMO_POS.Y + this.memo.height) {
+                
                 //Identify which 
-
                 var i = this.current.i;
                 var j = this.current.j;
 
-                if (!this.grid[i][j].hidden) {
-                    return;
-                }
-                for (var k = 0; k < 4; k++) {
-                    if (x > MEMO_TILE_POS[k].X && x < MEMO_TILE_POS[k].X + MEMO_TILE_SIZE &&
-                        y > MEMO_TILE_POS[k].Y && y < MEMO_TILE_POS[k].Y + MEMO_TILE_SIZE) {
+                if (this.grid[i][j].hidden) {
+                    for (var k = 0; k < 4; k++) {
+                        if (x > MEMO_TILE_POS[k].X && x < MEMO_TILE_POS[k].X + MEMO_TILE_SIZE.X &&
+                            y > MEMO_TILE_POS[k].Y && y < MEMO_TILE_POS[k].Y + MEMO_TILE_SIZE.Y) {
 
-                        var v = this.grid[i][j].memo[k].visible;
+                            var v = this.grid[i][j].memo[k].visible;
 
-                        this.grid[i][j].memo[k].setVisible(!v);
-
-                        this.memo.tiles[k].setVisible(!v);
-                        return;
+                            this.grid[i][j].memo[k].setVisible(!v);
+                            this.memo.tiles[k].setVisible(!v);
+                            return;
+                        }
                     }
                 }
             }
 
             //Clicking on a tile
             else {
+                console.log("tile");
                 for (var i = 0; i < NB_COLUMNS; i++) {
                     for (var j = 0; j < NB_ROWS; j++) {
-                        if (x >= this.grid[i][j].x - SQUARE/2 && x < this.grid[i][j].x + SQUARE/2
-                            && y >= this.grid[i][j].y - SQUARE/2 && y < this.grid[i][j].y + SQUARE/2
-                            && !(i == this.grid.length - 1 && j == this.grid[i].length - 1)) {
+                        var t = this.grid[i][j];
+
+                        var xmin = t.x - TILE_SIZE.WIDTH/2;
+                        var xmax = t.x + TILE_SIZE.WIDTH/2;
+                        var ymin = t.y - TILE_SIZE.WIDTH/2;
+                        var ymax = t.y + TILE_SIZE.WIDTH/2;
+
+                        if (x >= xmin && x < xmax && y >= ymin && y < ymax) {
 
                             // if (this.memo.is_open && !this.grid[i][j].hidden) {
                             //     return;
                             // }
 
-                            this.initMemoIndexes(i, j);
-
-                            if (!this.memo.is_open) {
-                                var tile = this.grid[this.current.i][this.current.j];
-                                this.flip(tile);
-                            }
+                            this.selectTile(i, j);
                         }
                     }
                 }
@@ -359,13 +237,23 @@ var SceneVoltorb = new Phaser.Class ({
         }
 
         this.input.on("pointerdown", (pointer) => {
+            if (this.busy) {
+                return;
+            }
             if (pointer.leftButtonDown()) {
-                clickOnTile(pointer.downX, pointer.downY);
+                clickHandler(pointer.downX, pointer.downY);
+            }
+            if (pointer.rightButtonDown()) {
+                debugger;
             }
 
         });
 
         this.input.keyboard.on("keydown", (key) => {
+
+            if (this.busy) {
+                return;
+            }
 
             switch(key.code) {
                 case 'Backspace':
@@ -375,76 +263,54 @@ var SceneVoltorb = new Phaser.Class ({
                     break;
 
                 case 'Enter':
-                    var tile = this.grid[this.current.i][this.current.j];
-                    this.flip(tile);
+                    this.selectTile();
                     break;
 
                 case 'Space':
-                    var tile = this.grid[this.current.i][this.current.j];
-                    this.flip(tile);
+                    this.selectTile();
                     break;
 
                 //Moving our way around the grid
                 case 'ArrowLeft':
-                    if (this.current.i == 0) {}
-                    else {
+                    if (this.current.i > 0) {
                         this.current.i--;
-                        this.highlight_memo.x -= (INTERSPACE + SQUARE);
-                        this.highlight.x -= (INTERSPACE + SQUARE);
+                        this.highlight.x -= (INTERSPACE.X + TILE_SIZE.WIDTH);
 
                         if (this.memo.is_open) {
-                            for (var k = 0; k < 4; k++) {
-                                this.initMemoIndexes(this.current.i, this.current.j);
-                            }
+                            this.initMemoIndexes(this.current.i, this.current.j);
                         }
                     }
                     break;
 
                 case 'ArrowUp':
-                    if (this.current.j == 0) {}
-                    else {
+                    if (this.current.j != 0) {
                         this.current.j--;
-                        this.highlight_memo.y -= (INTERSPACE + SQUARE);
-                        this.highlight.y -= (INTERSPACE + SQUARE);
+                        this.highlight.y -= (INTERSPACE.X + TILE_SIZE.HEIGHT);
 
                         if (this.memo.is_open) {
-                            for (var k = 0; k < 4; k++) {
-                                this.initMemoIndexes(this.current.i, this.current.j);
-                            }
+                            this.initMemoIndexes(this.current.i, this.current.j);
                         }
                     }
                     break;
 
                 case 'ArrowRight':
-                    if (this.current.i == NB_COLUMNS - 1) {
-                        //
-                    }
-                    else {
+                    if (this.current.i != NB_COLUMNS - 1) {
                         this.current.i++;
-                        this.highlight_memo.x += (INTERSPACE + SQUARE);
-                        this.highlight.x += (INTERSPACE + SQUARE);
+                        this.highlight.x += (INTERSPACE.X + TILE_SIZE.WIDTH);
 
                         if (this.memo.is_open) {
-                            for (var k = 0; k < 4; k++) {
-                                this.initMemoIndexes(this.current.i, this.current.j);
-                            }
+                            this.initMemoIndexes(this.current.i, this.current.j);
                         }
                     }
                     break;
 
                 case 'ArrowDown':
-                    if (this.current.j == NB_ROWS - 1) {
-                        //
-                    }
-                    else {
+                    if (this.current.j != NB_ROWS - 1) {
                         this.current.j++;
-                        this.highlight_memo.y += (INTERSPACE + SQUARE);
-                        this.highlight.y += (INTERSPACE + SQUARE);
+                        this.highlight.y += (INTERSPACE.X + TILE_SIZE.HEIGHT);
 
                         if (this.memo.is_open) {
-                            for (var k = 0; k < 4; k++) {
-                                this.initMemoIndexes(this.current.i, this.current.j);
-                            }
+                            this.initMemoIndexes(this.current.i, this.current.j);
                         }
                     }
                     break;
@@ -453,41 +319,143 @@ var SceneVoltorb = new Phaser.Class ({
                     break;
             }
         });
+        //Should not be in menu
+        var dialog_scene = this.scene.add('scene_dialog', SceneDialog, false, {});
 
-        this.events.on('resume', (scene, data) => {
-            if (data.choice == 0) {
-                // this.scene.stop();
-                this.scene.restart( 
-                {
-                    level: Math.min(data.level, this.level_max),
-                    restart: true
-                });
-            }
-            else {
-                this.cameras.main.fadeOut(100);
-                this.cameras.main.on("camerafadeoutcomplete", () => {
-                    this.scene.stop();
-                });
-            }
-        });
+        this.initGame(true); //first game
     },
 
-    //Sets (distrib) random non-attributed tiles to value (value)
-    setValue(value, distrib) {
-        for (var n = 0; n < distrib; n++) {
-            var attributed = false;
-            while (!attributed) {
-                var i = this.getRandomInt(0, NB_ROWS);
-                var j = this.getRandomInt(0, NB_COLUMNS);
-                if (this.grid[i][j].value == 1) {
-                    this.grid[i][j].value = value;
-                    attributed = true;
-                }
-            }
+    initGame: function(first) {
+        var dialog = [];
+
+        const startGame = () => {
+            this.startGame();
+        }
+
+        dialog.push({
+            text: 'Placeholder',
+            selection_type: 0,
+            handler: null
+        });
+
+        dialog.push({
+            text: 'Question?',
+            selection_type: 1,
+            items: ['A', 'B'],
+            handlers: [startGame, null]
+        });
+
+        var data_dialog = {
+            origin_scene: this,
+            dialog: dialog
+        };
+
+
+        this.scene.pause();
+        if (first) {
+            this.scene.launch('scene_dialog', data_dialog);
+        }
+        else {
+            this.scene.wake('scene_dialog', data_dialog);
         }
     },
 
+    startGame: function() {
+
+        this.nb_total_tiles = this.getRandomDistribution(this.distribution);
+        this.distrib = { 0: this.nb_total_tiles[0], 2: this.nb_total_tiles[2], 3: this.nb_total_tiles[3] };
+
+        this.setValue(2, this.distrib[2]);
+        this.setValue(3, this.distrib[3]);
+        this.setValue(0, this.distrib[0]);
+
+        var x = FIRST_TILE_POSITION.X;
+        var y = FIRST_TILE_POSITION.Y;
+        
+        for (var i = 0; i < NB_COLUMNS; i++) {
+            for (var j = 0; j < NB_ROWS; j++) {
+                
+                var t = this.grid[i][j];
+                t.x = x + TILE_SIZE.WIDTH/2; //origin centered
+                t.y = y + TILE_SIZE.HEIGHT/2; //origin centered
+
+                t.sprite = this.physics.add.sprite(t.x, t.y, 'atlas_main', 'hidden');
+                t.sprite.setDepth(2);
+
+                t.spark = this.physics.add.sprite(t.x, t.y, 'atlas_anim', 'spark_1');
+                t.spark.setVisible(false);
+                t.spark.setDepth(10);
+                t.frame = 0;
+
+                if (t.value == 0) {
+                    t.explode = this.physics.add.sprite(t.x, t.y, 'atlas_anim', 'explode_1');
+                    t.explode.setVisible(false);
+                    t.explode.setDepth(10);
+                }
+                y += TILE_SIZE.HEIGHT + INTERSPACE.Y;
+            }            
+            x += TILE_SIZE.WIDTH + INTERSPACE.X;
+            y = FIRST_TILE_POSITION.Y;
+        }
+
+        //Count each row and column value and nb of voltorb/bombs to fill indexes
+        for (var i = 0; i < NB_COLUMNS; i++) {
+            var sum_pts = 0, sum_v = 0;
+
+            for (var j = 0; j < NB_ROWS; j++) {
+                this.grid[i][j].playable = (i != NB_COLUMNS && j != NB_ROWS);
+                this.grid[i][j].hidden = (i != NB_COLUMNS && j != NB_ROWS);
+                this.grid[i][j].memo = [];
+
+                if (this.grid[i][j].value == 0) {
+                    sum_v++;
+                }
+                else {
+                    sum_pts += this.grid[i][j].value;
+                }
+            }
+
+            this.grid[i][NB_ROWS].nb_voltorbs = sum_v;
+            this.grid[i][NB_ROWS].nb_pts = sum_pts;
+
+            this.setIndexes(i, NB_ROWS); 
+        }
+
+        for (var j = 0; j < NB_ROWS; j++) {
+            var sum_pts = 0, sum_v = 0;
+
+            //if (this.data.restart) {
+                for (var i = 0; i < NB_COLUMNS; i++) {
+                    if (this.grid[i][j].value == 0) {
+                        sum_v++;
+                    }
+                    else {
+                        sum_pts += this.grid[i][j].value;
+                    }
+                }
+            //}
+            this.grid[NB_COLUMNS][j].nb_voltorbs = sum_v;
+            this.grid[NB_COLUMNS][j].nb_pts = sum_pts;
+
+            this.setIndexes(NB_COLUMNS, j);
+        }
+
+        //Set and highlight the current active tile to flip
+        this.highlight = this.physics.add.sprite(
+            this.grid[0][0].x,
+            this.grid[0][0].y,
+            'atlas_main', 'highlight_red'
+            );
+        this.highlight.setDepth(6);
+
+    },
+
     update: function(time, delta) {
+
+
+                    /*if (this.game_lost) {
+                        this.gameOver();
+                    }*/
 
         for (var i = 0; i < this.tiles_to_process.length; i++) {
             var t = this.tiles_to_process[i];
@@ -500,8 +468,6 @@ var SceneVoltorb = new Phaser.Class ({
                 var length = this.animations.flip.frames.length;
                 if (t.frame < length) {
                     var value = this.animations.flip.frames[t.frame];
-                    console.log(value);
-                    t.sprite.setVisible(true);
                     var frame = '';
                     if (value == 0) {
                         frame = 'flip_left';
@@ -511,11 +477,12 @@ var SceneVoltorb = new Phaser.Class ({
                     }
                     else if (value == 2) {
                         frame = 'flip_right';
-                        t.flipping_number.setVisible(true);
+                        frame = 'flip_' + t.value;
+                        //t.flipping_number.setVisible(true);
                     }
                     else {
                         frame = 'tile_' + t.value;
-                        t.flipping_number.setVisible(false);
+                        //t.flipping_number.setVisible(false);
                     }
                     t.sprite.setFrame(frame);
                     t.frame++;
@@ -523,7 +490,8 @@ var SceneVoltorb = new Phaser.Class ({
                 else {
                     t.frame = 0;
                     if (this.game_lost) {
-                        this.loseGame();
+                        //this.gameOver();
+                        t.status = 5;
                     }
                     else {
                         if (t.value > 0) {
@@ -551,7 +519,7 @@ var SceneVoltorb = new Phaser.Class ({
 
                     this.distrib[t.value]--;
                     if (this.distrib[2] + this.distrib[3] == 0) {
-                        this.winGame();
+                        this.game_won = true;
                     }
                     t.status = 5;
                 }
@@ -567,7 +535,7 @@ var SceneVoltorb = new Phaser.Class ({
                 }
                 else {
                     t.explode.setVisible(false);
-                    this.endLevel();
+                    this.loseGame();
                     t.status = 5;
                 }
                 break;
@@ -578,85 +546,131 @@ var SceneVoltorb = new Phaser.Class ({
 
                 default:
                 this.tiles_to_process.splice(i, 1);
+                if (this.tiles_to_process.length == 0) {
+                    this.busy = false;
+                    if (this.flip_all) {
+                        this.flip_all = false;
+                        this.gameOver();
+                    }
+                }
                 break;
             }
-        }
-        
+        }        
     },
 
-    initMemoIndexes: function(i, j) {
+    selectTile: function(i, j) {
 
-        for (var k = 0; k < 4; k++) {
-            this.memo.tiles[k].setVisible(false);
+        if (typeof(i) != 'undefined' && typeof(j) != 'undefined') {
+            this.current.i = i;
+            this.current.j = j;
         }
-        this.current.i = i;
-        this.current.j = j;
+        else {
+            i = this.current.i;
+            j = this.current.j;
+        }
+        var t = this.grid[i][j];
 
-        this.highlight_memo.x = this.grid[i][j].x;
-        this.highlight_memo.y = this.grid[i][j].y;
+        this.highlight.x = t.x;
+        this.highlight.y = t.y;
 
-        this.highlight.x = this.grid[i][j].x;
-        this.highlight.y = this.grid[i][j].y;
-
+        
         if (this.memo.is_open) {
-            for (var k = 0; k < 4; k++) {
-                if (this.grid[i][j].memo[k].visible) {
-                    this.memo.tiles[k].setVisible(true);
-                }
-            }
+            this.initMemoIndexes(i, j);
+        }
+        else {
+            this.flip(t);
+        }
+        return t;
+    },
+
+    //When memo box is open, set the memo indexes visibility according to the current selected tile
+    initMemoIndexes: function(i, j) {
+        var t = this.grid[i][j];
+        for (var k = 0; k < 4; k++) {
+            var v = t.memo[k].visible;
+            this.memo.tiles[k].setVisible(v);
         }
     },
 
     addIndexes: function(i, j) {
-        var fd = this.physics.add.sprite(
-            this.grid[i][j].x + FIRST_DIGIT_NB_PTS.X, 
-            this.grid[i][j].y + FIRST_DIGIT_NB_PTS.Y,
-            'digits').setOrigin(0,0);
 
-        var sd = this.physics.add.sprite(
-            this.grid[i][j].x + SECOND_DIGIT_NB_PTS.X, 
-            this.grid[i][j].y + SECOND_DIGIT_NB_PTS.Y,
-            'digits').setOrigin(0,0);
+        var t = this.grid[i][j];
 
-        if (this.grid[i][j].nb_pts > 9) {
-            fd.setFrame(1);
-            sd.setFrame(this.grid[i][j].nb_pts - 10);
+        t.fd = this.physics.add.sprite(
+            t.x + FIRST_DIGIT_NB_PTS.X + TILE_SIZE.WIDTH/2, 
+            t.y + FIRST_DIGIT_NB_PTS.Y + TILE_SIZE.HEIGHT/2,
+            'digits').setOrigin(0,0).setDepth(4);
+
+        t.sd = this.physics.add.sprite(
+            t.x + SECOND_DIGIT_NB_PTS.X + TILE_SIZE.WIDTH/2, 
+            t.y + SECOND_DIGIT_NB_PTS.Y + TILE_SIZE.HEIGHT/2,
+            'digits').setOrigin(0,0).setDepth(4);
+
+        t.fd.setFrame(0);
+        t.sd.setFrame(0);
+
+        t.nb = this.physics.add.sprite(
+            t.x + NB_VOLTORBS_INDEX.X + TILE_SIZE.WIDTH/2, 
+            t.y + NB_VOLTORBS_INDEX.Y + TILE_SIZE.HEIGHT/2,
+            'digits').setOrigin(0,0).setDepth(4);
+
+        t.nb.setFrame(0);
+    },
+
+    setIndexes: function(i, j) {
+
+        var t = this.grid[i][j];
+
+        if (t.nb_pts > 9) {
+            t.fd.setFrame(1);
+            t.sd.setFrame(t.nb_pts - 10);
         }
         else {
-            fd.setFrame(0);
-            sd.setFrame(this.grid[i][j].nb_pts);
+            t.fd.setFrame(0);
+            t.sd.setFrame(t.nb_pts);
         }
 
-        var nb = this.physics.add.sprite(
-            this.grid[i][j].x + NB_VOLTORBS_INDEX.X, 
-            this.grid[i][j].y + NB_VOLTORBS_INDEX.Y,
-            'digits').setOrigin(0,0);
-        nb.setFrame(this.grid[i][j].nb_voltorbs);
-
+        t.nb.setFrame(t.nb_voltorbs);
     },
 
     flip: function(tile) {
+        this.busy = true;
 
         tile.status = 1;
 
         if (tile.hidden) {
             tile.hidden = false;
             tile.status = 1; //flip
+            tile.sprite.setDepth(4);
             this.tiles_to_process.push(tile);
             this.nb_flipped++;
         }
     },
 
-    winGame: function() {        
-        var text = 'Game cleared!';
+    winGame: function() {
+
         var new_level = Math.min(this.level_max, this.level+1); 
-        text += '\n\n';
-        text += 'Level ' + new_level + '!';
-        text += '\n\nPlay Voltorb Flip level ' + new_level + ' ?';
+        
+        var dialog = [];
+        dialog.push({
+            text: 'Game cleared!',
+            selection_type: 0,
+            handler: null
+        });
+        dialog.push({
+            text: 'Level ' + new_level + '!',
+            selection_type: 0,
+            handler: null
+        });
+        dialog.push({
+            text: 'Play Voltorb Flip at level ' + new_level + '?',
+            selection_type: 1,
+            items: ['Yes', 'No'],
+            handler: [null, null]
+        });
     
         var data = {
-            text: text,
-            options: this.options,
+            dialog: dialog,
             origin_scene: this.scene,
             level: new_level,
             restart: true,
@@ -664,7 +678,7 @@ var SceneVoltorb = new Phaser.Class ({
 
         // this.cameras.main.fadeOut(200);
         this.scene.pause();
-        this.scene.resume('scene_dialog', data);
+        this.scene.wake('scene_dialog', data);
     },
 
     endLevel: function() {
@@ -674,11 +688,12 @@ var SceneVoltorb = new Phaser.Class ({
             selection_type: 0, //No selection
             handler: null
         });
-        this.scene.resume('scene_dialog', {style:1, origin_scene: this, dialog: dialog} );  
+        this.scene.wake('scene_dialog', {style:1, origin_scene: this, dialog: dialog} );  
 
     },
 
     flipAll: function() {
+        this.flip_all = true;
     	for (var i = 0; i < NB_COLUMNS; i++) {
     		for (var j = 0; j < NB_ROWS; j++) {
     			var tile = this.grid[i][j];
@@ -687,40 +702,64 @@ var SceneVoltorb = new Phaser.Class ({
     			}
     		}
     	}
-        this.game_lost = true;
+        console.log("flipped all, game over");
     },
 
     loseGame: function() {
         var new_level = Math.max(Math.min(this.level, this.nb_flipped), 1);
-        var text = 'Game over!';
-        if (new_level < this.level) {
-            text += '\n\nThe game is back on level ' + new_level + '!';
-        }
 
-        text += '\n\nPlay Voltorb Flip level ' + new_level + '?';
+        const t = (scene) => {
+            scene.scene.sleep();
+            this.scene.resume();
+            this.game_lost = true;
+            this.flipAll();
+        };
 
-        var options = [
-            "Play again",
-            "Quit"
-        ];
         var dialog = [];
         dialog.push({
-            text: text, 
+            text: 'Game over !', 
             selection_type: 0, //No selection
             handler: null
         });
+        dialog.push({
+            text: '', 
+            selection_type: 0, //No selection
+            handler: t
+        });
 
         var data = {
-            text: text,
-            options: this.options,
-            origin_scene: this.scene,
-            level: new_level,
-            restart: true,
+            origin_scene: this,
             dialog: dialog
         }
 
         this.scene.pause();
-        this.scene.resume('scene_dialog', data);
+        this.scene.wake('scene_dialog', data);
+    },
+
+    gameOver: function() {
+        this.leftToRight();
+        //TODO: le jeu est redescendu
+        //this.startGame();
+    },
+
+    leftToRight: function() {
+        console.log("left to right...");
+
+    },
+
+    //Sets (distrib) random non-attributed tiles to value (value)
+    setValue(value, distrib) {
+        for (var n = 0; n < distrib; n++) {
+            var attributed = false;
+            while (!attributed) {
+                var i = this.getRandomInt(0, NB_ROWS);
+                var j = this.getRandomInt(0, NB_COLUMNS);
+                if (this.grid[i][j].value == 1) {
+                    this.grid[i][j].value = value;
+                    attributed = true;
+                }
+            }
+        }
     },
 
     getRandomInt: function(min, max) {

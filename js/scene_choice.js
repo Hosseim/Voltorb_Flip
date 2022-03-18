@@ -1,14 +1,8 @@
+import {DialogBox} from './scene_dialog.js';
+
 var scene_key = 'scene_choice';
 
 const LINE_SIZE = 37;
-
-const TEXT_CONFIG = { 
-	fontFamily: 'pkmn', 
-	color: '#FFFFFF', 
-	fontSize: '12px',
-	textShadow: '2px 0 0 black, -2px 0 0 black, 0 2px 0 black, 0 -2px 0 black, 1px 1px black, -1px -1px 0 black, 1px -1px 0 black, -1px 1px 0 black',
-};
-
 
 const BORDER = 5; //thickness of the border
 const FONT_SIZE = 10;
@@ -55,9 +49,7 @@ export var SceneChoice = new Phaser.Class({
     },
 
     create: function () {
-        var x = this.canvas.width - 25;
-        var y = this.canvas.height - 45;
-
+        
         // this.box = this.physics.add.image(x, y, 'yes_or_no').setOrigin(1, 1);
 
         // this.select = this.physics.add.image(
@@ -65,30 +57,49 @@ export var SceneChoice = new Phaser.Class({
         //     y - this.box.height + 11,
         //     'select').setOrigin(0,0);
 
-        x = this.canvas.width;
-        y = this.canvas.height - 48;
+        var x = this.canvas.width;
+        var y = this.canvas.height - 48;
 
-        var nb = this.data.options.length;
+        var nb = this.data.items.length;
 
-        var rect = this.add.rectangle(x, y, 120, 8 + nb*24, 0x73747b).setOrigin(1,1);
+        var config = {
+            x: 0,
+            y: 0,
+            text: 'ABC',
+            size: 6,
+            color: 'grey'
+        }
+
+        this.rt = DialogBox.createLabel(this, config);
 
         var items = [];
 
-        x = x - rect.width + 4;
-        y = y - rect.height + 5;
+        var width = 112;
+        var height = 22 + (nb-1)*24;
+
+        x -= 4 + width;
+        y -= 5 + height;
+
+        var rect = this.add.rectangle(x, y, width, height, 0x73747b).setOrigin(0,0);
+
+        //this.box = this.add.image(x, y, '').setOrigin(1,1);
+
 
         this.highlight = this.add.image(x, y, 'highlight_item').setOrigin(0,0);
         this.highlight.setDepth(1);
 
         for (var i = 0; i < nb; i++) {
-        	items.push(this.add.image(x, y, 'menu_item').setOrigin(0,0));
+        	items.push(this.add.image(x, y, 'menu_item').setOrigin(0, 0));
         	var x_text = x + items[i].width/2;
         	var y_text = y + items[i].height/2;
-        	this.add.text(x_text, y_text, this.data.options[i], 
-                    TEXT_CONFIG).setOrigin(0.5, 0.5);
+
+        	this.setText(i, {
+                x: x_text, 
+                y: y_text, 
+                text: this.data.items[i],
+            });//.setOrigin(0, 0);
         	y += MENU_ITEM_HEIGHT;
         }
-
 
         this.choice = 0;
 
@@ -102,8 +113,9 @@ export var SceneChoice = new Phaser.Class({
                 		y > items[i].y && y < (items[i].y + items[i].height)) {
                 		this.choice = i;
                 		this.highlight.y = items[i].y;
-                		this.scene.stop();
-                		this.scene.resume(this.data.origin_scene.scene.key, {choice: this.choice } );
+                        this.data.handlers[i]();
+                		this.scene.sleep();
+                		this.scene.resume(this.data.origin_scene.scene.key, {mode: 'sleep'});
                 		return;
                 	}
                 }
@@ -129,8 +141,12 @@ export var SceneChoice = new Phaser.Class({
         });
     },
 
-    update: function (time, delta)
-    {
+
+    setText: function(i, config) {
+        this.first_line = DialogBox.writeText(this, this.rt, config);
+    },
+
+    update: function (time, delta) {
         //this.pic.rotation += 0.01;
     },
 

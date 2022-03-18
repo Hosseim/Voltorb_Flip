@@ -3,7 +3,7 @@ const SMALL_LOWERCASES = ['f', 'i', 'j', 'k', 'l', 'n', 'r', 's', 't', 'u'];
 const ALPHABET = {FRAMEWIDTH: 6, FRAMEHEIGHT: 13};
 const LINE_SIZE = 37;
 
- class DialogBox {
+ export class DialogBox {
 
     static writeText(scene, rt, config) {
 
@@ -23,6 +23,7 @@ const LINE_SIZE = 37;
         }
 
         var alphabet = 'alphabet_' + color + '_' + size;
+        alphabet = 'alphabet';
 
 
         var offset = 0;
@@ -65,11 +66,17 @@ const LINE_SIZE = 37;
                     id = code - 97 + 26;
                     small = SMALL_LOWERCASES.includes(c);
                 }
+                else if (code == 33) {
+                    id = 62; //!
+                }
                 else if (code == 63) {
                     id = 63; //?
                 }
                 else if (code == 46) {
                     id = 64; //.
+                }
+                else if (code = 45) {
+                    id = 65; //-
                 }
             }
 
@@ -122,7 +129,6 @@ const LINE_SIZE = 37;
         }
 
         var rt = scene.add.renderTexture(x, y, SCREEN_WIDTH, LINE_HEIGHT);
-        config.text = 'Placeholder';
         return DialogBox.writeText(scene, rt, config);
     }
 }
@@ -155,7 +161,7 @@ const LINE_HEIGHT = 15; //font size + interspace
 export class SceneDialog extends Phaser.Scene {
 
     constructor() {
-        super(SCENE_KEY);
+        super('scene_dialog');
     }
 
     init(data) {
@@ -169,6 +175,7 @@ export class SceneDialog extends Phaser.Scene {
         this.dialog = data.dialog;
         this.dialog_line = 0; //block of lines ended by a user choice or the end of the dialog
         this.lines_read = 0; //line as displayed on the screen
+        this.check_handlers = 0;
     }
 
     preload() {      
@@ -177,6 +184,8 @@ export class SceneDialog extends Phaser.Scene {
 
         this.load.spritesheet('waiting_arrow', 'arrow_wait.png',
             {frameWidth: 10, frameHeight: 10} );
+        this.load.spritesheet('alphabet', 'alphabets/alphabet_grey_6.png',
+            {frameWidth: 6, frameHeight: 13} );
     }
 
     create() {
@@ -199,14 +208,13 @@ export class SceneDialog extends Phaser.Scene {
             color: 'grey'
         }
 
-        //this.first_line = this.add.text(this.x, this.y, '', TEXT_CONFIG).setOrigin(0,0);
 
         this.first_line = DialogBox.createLabel(this, config);
         config.y += LINE_HEIGHT;
         this.second_line = DialogBox.createLabel(this, config);
 
         //this.first_line = DialogBox.createLabel(this, config);
-        //this.second_line = this.add.text(this.x, this.y + 16, '', TEXT_CONFIG).setOrigin(0,0);
+
         this.arrow = this.physics.add.sprite(this.x, this.y, 'waiting_arrow').setOrigin(0,0);
         //this.first_line.setDepth(2);
         //this.second_line.setDepth(10);
@@ -219,9 +227,18 @@ export class SceneDialog extends Phaser.Scene {
             }
         });
 
-
         this.events.on('resume', (scene, data) => {
-            debugger;
+            console.log(data);
+            if (data.mode == 'sleep') {
+                console.log(this);
+                this.exit();
+            }
+        });
+
+        this.events.on('wake', (scene, data) => {
+            this.initData(data);
+            this.text = this.processText(this.dialog[this.dialog_line].text);
+            this.read();
         });
 
         this.text = this.processText(this.dialog[this.dialog_line].text);
@@ -235,18 +252,26 @@ export class SceneDialog extends Phaser.Scene {
         }
     }
 
-    resumeHandler(scene, response) {
-        scene.scene.updateText();
-    }
-
-    wakeHandler(scene, response) {
-        scene.scene.initData(response);
-        scene.scene.text = scene.scene.processText(scene.scene.dialog[scene.scene.dialog_line].text);
-        scene.scene.read();
-    }
-
     update (time, delta) {
-        //this.pic.rotation += 0.01;
+        if (this.check_handlers > 0) {
+            var dialog_line = this.check_handlers;
+            this.check_handlers = 0;
+            
+            switch(this.dialog[dialog_line].selection_type) {
+                case 0:
+                if (this.dialog[dialog_line].handler != null) {
+                    this.dialog[dialog_line].handler(this);
+                }
+                break;
+
+                case 1:
+                this.chooseText(dialog_line);
+                break;
+
+                default:
+                break;
+            }
+        }
     }
 
     read() {
@@ -280,29 +305,8 @@ export class SceneDialog extends Phaser.Scene {
             if (this.lines_read == this.text.length) {
                 this.arrow.setVisible(false);
 
-                switch(this.dialog[this.dialog_line].selection_type) {
-                    case 0:
-                    if (this.dialog[this.dialog_line].handler != null) {
-                        this.dialog[this.dialog_line].handler(this);
-                    }
-                    break;
+                this.check_handlers = this.dialog_line;
 
-                    case 1:
-                    this.chooseText();
-                    break;
-
-                    case 2:
-                    this.choosePokemon();
-                    break;
-
-                    case 3:
-                    this.chooseItem();
-                    break;
-
-                    default:
-                    break;
-
-                } 
                 this.dialog_line++;
             }
         }
@@ -373,26 +377,27 @@ export class SceneDialog extends Phaser.Scene {
     }
 
     updateText() {
+        console.log("this.dialog_line = " + this.dialog_line + " & this.dialog.length = " + this.dialog.length);
         if (this.dialog_line < this.dialog.length) {
-            //this.lines_read = 0; //line as displayed on the screen
-            this.first_line
+            this.lines_read = 0; //line as displayed on the screen
             this.text = this.processText(this.dialog[this.dialog_line].text);
             this.read();
+            //this.dialog_line++;
         }
         else {
             this.exit();
         }
     }
 
-    chooseText() {
+    chooseText(dialog_line) {
 
         var data = {
             origin_scene: this,
             x: SCREEN_WIDTH,
             y: SCREEN_HEIGHT - TEXT_BOX_HEIGHT,
             width: OPTIONS_BOX_WIDTH,
-            items: this.dialog[this.dialog_line].choices,
-            handlers: this.dialog[this.dialog_line].handlers,
+            items: this.dialog[dialog_line].items,
+            handlers: this.dialog[dialog_line].handlers,
             originX: 1,
             originY: 1,
             id_menu: 0,

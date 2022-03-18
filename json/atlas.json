@@ -23,16 +23,20 @@
 
 
 		{
-			"filename": "flip_left",
+			"filename": "hidden",
 			"frame": {"x":0,"y":28,"w":28,"h":28}
 		},
 		{
-			"filename": "flip_middle",
+			"filename": "flip_left",
 			"frame": {"x":28,"y":28,"w":28,"h":28}
 		},
 		{
-			"filename": "flip_right",
+			"filename": "flip_middle",
 			"frame": {"x":56,"y":28,"w":28,"h":28}
+		},
+		{
+			"filename": "flip_right",
+			"frame": {"x":84,"y":28,"w":28,"h":28}
 		},
 
 		{

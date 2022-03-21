@@ -60,7 +60,6 @@ var SceneVoltorb = new Phaser.Class ({
                 }
             }
         }
-        this.current = {i: 0, j: 0};
 
         //tiles being animated 
         this.tiles_to_process = [];
@@ -70,9 +69,11 @@ var SceneVoltorb = new Phaser.Class ({
 
         //nb voltorbs flipped over so far
         this.nb_flipped = 0;
+        this.current = {i: 0, j: 0};
 
         this.id_dialog = 0;
         this.busy = false;
+        this.left_to_right_column = 0;
     },
 
     preload: function() {
@@ -110,6 +111,17 @@ var SceneVoltorb = new Phaser.Class ({
 
                 t.sprite = this.physics.add.sprite(t.x, t.y, 'atlas_main', 'hidden');
                 t.sprite.setDepth(2);
+
+                t.spark = this.physics.add.sprite(t.x, t.y, 'atlas_anim', 'spark_1');
+                t.spark.setVisible(false);
+                t.spark.setDepth(10);
+                t.frame = 0;
+/*
+                if (t.value == 0) {
+                    t.explode = this.physics.add.sprite(t.x, t.y, 'atlas_anim', 'explode_1');
+                    t.explode.setVisible(false);
+                    t.explode.setDepth(10);
+                }*/
                 y += TILE_SIZE.HEIGHT + INTERSPACE.Y;
             }            
             x += TILE_SIZE.WIDTH + INTERSPACE.X;
@@ -143,6 +155,10 @@ var SceneVoltorb = new Phaser.Class ({
             );
         }
         this.memo.setVisible(false);
+
+        //Set the highlighting sprite
+        this.highlight = this.physics.add.sprite(0, 0, 'atlas_main', 'highlight_red');
+        this.highlight.setDepth(6);
 
         //Add memo numbers and set them invisible
         for (var i = 0; i < NB_COLUMNS; i++) {
@@ -325,7 +341,14 @@ var SceneVoltorb = new Phaser.Class ({
         this.initGame(true); //first game
     },
 
-    initGame: function(first) {
+    initGame: function(first_game, lost_game) {
+        this.initHighlight();
+        this.game_lost = false;
+        this.nb_flipped = 0;
+
+        this.id_dialog = 0;
+        this.left_to_right_column = 0;
+
         var dialog = [];
 
         const startGame = () => {
@@ -352,7 +375,7 @@ var SceneVoltorb = new Phaser.Class ({
 
 
         this.scene.pause();
-        if (first) {
+        if (first_game) {
             this.scene.launch('scene_dialog', data_dialog);
         }
         else {
@@ -361,42 +384,32 @@ var SceneVoltorb = new Phaser.Class ({
     },
 
     startGame: function() {
+        this.busy = false;
 
         this.nb_total_tiles = this.getRandomDistribution(this.distribution);
         this.distrib = { 0: this.nb_total_tiles[0], 2: this.nb_total_tiles[2], 3: this.nb_total_tiles[3] };
 
-        this.setValue(2, this.distrib[2]);
-        this.setValue(3, this.distrib[3]);
-        this.setValue(0, this.distrib[0]);
-
-        var x = FIRST_TILE_POSITION.X;
-        var y = FIRST_TILE_POSITION.Y;
-        
         for (var i = 0; i < NB_COLUMNS; i++) {
             for (var j = 0; j < NB_ROWS; j++) {
                 
                 var t = this.grid[i][j];
-                t.x = x + TILE_SIZE.WIDTH/2; //origin centered
-                t.y = y + TILE_SIZE.HEIGHT/2; //origin centered
+                t.value = 1;
 
-                t.sprite = this.physics.add.sprite(t.x, t.y, 'atlas_main', 'hidden');
-                t.sprite.setDepth(2);
-
-                t.spark = this.physics.add.sprite(t.x, t.y, 'atlas_anim', 'spark_1');
-                t.spark.setVisible(false);
-                t.spark.setDepth(10);
+                //t.sprite.setFrame('hidden');
+                //t.spark.setFrame('spark_1');
                 t.frame = 0;
 
-                if (t.value == 0) {
+                /*if (t.value == 0) {
                     t.explode = this.physics.add.sprite(t.x, t.y, 'atlas_anim', 'explode_1');
                     t.explode.setVisible(false);
                     t.explode.setDepth(10);
-                }
-                y += TILE_SIZE.HEIGHT + INTERSPACE.Y;
+                }*/
             }            
-            x += TILE_SIZE.WIDTH + INTERSPACE.X;
-            y = FIRST_TILE_POSITION.Y;
         }
+        this.setValue(2, this.distrib[2]);
+        this.setValue(3, this.distrib[3]);
+        this.setValue(0, this.distrib[0]);
+
 
         //Count each row and column value and nb of voltorb/bombs to fill indexes
         for (var i = 0; i < NB_COLUMNS; i++) {
@@ -439,24 +452,18 @@ var SceneVoltorb = new Phaser.Class ({
 
             this.setIndexes(NB_COLUMNS, j);
         }
+        this.initHighlight();
+    },
 
-        //Set and highlight the current active tile to flip
-        this.highlight = this.physics.add.sprite(
-            this.grid[0][0].x,
-            this.grid[0][0].y,
-            'atlas_main', 'highlight_red'
-            );
-        this.highlight.setDepth(6);
-
+    initHighlight: function() {
+        this.current.i = 0;
+        this.current.j = 0;
+        this.highlight.x = this.grid[0][0].x;
+        this.highlight.y = this.grid[0][0].y;
+        this.highlight.setVisible(true);
     },
 
     update: function(time, delta) {
-
-
-                    /*if (this.game_lost) {
-                        this.gameOver();
-                    }*/
-
         for (var i = 0; i < this.tiles_to_process.length; i++) {
             var t = this.tiles_to_process[i];
 
@@ -490,11 +497,11 @@ var SceneVoltorb = new Phaser.Class ({
                 else {
                     t.frame = 0;
                     if (this.game_lost) {
-                        //this.gameOver();
                         t.status = 5;
                     }
                     else {
                         if (t.value > 0) {
+                            this.busy = false;
                             t.status = 2;
                         }
                         else {
@@ -529,28 +536,70 @@ var SceneVoltorb = new Phaser.Class ({
                 var length = this.animations.explode.frames.length;
                 if (t.frame < length) {
                     var value = this.animations.explode.frames[t.frame];
-                    t.explode.setFrame('explode_' + value);
-                    t.explode.setVisible(true);
+                    t.spark.setFrame('explode_' + value);
+                    t.spark.setVisible(true);
                     t.frame++;
                 }
                 else {
-                    t.explode.setVisible(false);
+                    t.spark.setVisible(false);
                     this.loseGame();
                     t.status = 5;
                 }
                 break;
 
                 case 4: //flipping back
-                t.status = 5;
+                var length = this.animations.flip.frames.length;
+
+                if (t.frame < length) {
+                    var value = this.animations.flip.frames[t.frame];
+                    var frame = '';
+                    if (value == 0) {
+                        frame = 'flip_right';
+                        frame = 'flip_' + t.value;
+                    }
+                    else if (value == 1) {
+                        frame = 'flip_middle';
+                    }
+                    else if (value == 2) {
+                        frame = 'flip_left';
+                        //t.flipping_number.setVisible(true);
+                    }
+                    else {
+                        frame = 'hidden';
+                        //t.flipping_number.setVisible(false);
+                    }
+                    t.sprite.setFrame(frame);
+                    t.frame++;
+                }
+                else {
+                    t.frame = 0;
+                    t.status = 5;
+                }
                 break;
 
                 default:
+                t.frame = 0;
                 this.tiles_to_process.splice(i, 1);
                 if (this.tiles_to_process.length == 0) {
-                    this.busy = false;
+                    //this.busy = false;
                     if (this.flip_all) {
                         this.flip_all = false;
-                        this.gameOver();
+                        this.unflip_all = true;
+                        this.leftToRight(this.left_to_right_column);
+                        //this.gameOver();
+                    }
+                    else if (this.unflip_all) {
+                        this.left_to_right_column++;
+                        if (this.left_to_right_column >= 0 && this.left_to_right_column < NB_COLUMNS) {
+                            this.leftToRight(this.left_to_right_column);
+                        }
+                        else {
+                            this.unflip_all = false;
+                            this.initGame(false, false);
+                        }
+                    }
+                    else {
+
                     }
                 }
                 break;
@@ -647,6 +696,15 @@ var SceneVoltorb = new Phaser.Class ({
         }
     },
 
+    unflip: function(tile) {
+        console.log('unflipping tile (' + tile.x + ', ' + tile.y + ')');
+        this.busy = true;
+        tile.hidden = true;
+        tile.status = 4; //flip back
+        tile.sprite.setDepth(4);
+        this.tiles_to_process.push(tile);
+    },
+
     winGame: function() {
 
         var new_level = Math.min(this.level_max, this.level+1); 
@@ -706,6 +764,7 @@ var SceneVoltorb = new Phaser.Class ({
     },
 
     loseGame: function() {
+
         var new_level = Math.max(Math.min(this.level, this.nb_flipped), 1);
 
         const t = (scene) => {
@@ -737,14 +796,25 @@ var SceneVoltorb = new Phaser.Class ({
     },
 
     gameOver: function() {
+        this.wait(4);
         this.leftToRight();
         //TODO: le jeu est redescendu
         //this.startGame();
     },
 
-    leftToRight: function() {
-        console.log("left to right...");
+    //Do nothing for nbFrames frames
+    wait: function(nbFrames) {
+        this.timer = nbFrames;
+    },
 
+    leftToRight: function(column) {
+        console.log("left to right...");
+        //this.left_to_right_column++;
+
+        for (var j = 0; j < NB_COLUMNS; j++) {
+            var t = this.grid[column][j];
+            this.unflip(t);
+        }
     },
 
     //Sets (distrib) random non-attributed tiles to value (value)

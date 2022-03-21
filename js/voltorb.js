@@ -344,6 +344,7 @@ var SceneVoltorb = new Phaser.Class ({
     initGame: function(first_game, lost_game) {
         this.initHighlight();
         this.game_lost = false;
+        this.game_won = false;
         this.nb_flipped = 0;
 
         this.id_dialog = 0;
@@ -496,7 +497,7 @@ var SceneVoltorb = new Phaser.Class ({
                 }
                 else {
                     t.frame = 0;
-                    if (this.game_lost) {
+                    if (this.game_lost || this.game_won) {
                         t.status = 5;
                     }
                     else {
@@ -526,7 +527,7 @@ var SceneVoltorb = new Phaser.Class ({
 
                     this.distrib[t.value]--;
                     if (this.distrib[2] + this.distrib[3] == 0) {
-                        this.game_won = true;
+                        this.winGame();
                     }
                     t.status = 5;
                 }
@@ -595,7 +596,7 @@ var SceneVoltorb = new Phaser.Class ({
                         }
                         else {
                             this.unflip_all = false;
-                            this.initGame(false, false);
+                            this.initGame(false, this.game_won);
                         }
                     }
                     else {
@@ -706,9 +707,14 @@ var SceneVoltorb = new Phaser.Class ({
     },
 
     winGame: function() {
-
         var new_level = Math.min(this.level_max, this.level+1); 
         
+        const h = (scene) => { 
+            scene.scene.sleep(); //dialog sleep
+            this.scene.resume(); //resume the main game
+            this.game_won = true;
+            this.flipAll();
+        }
         var dialog = [];
         dialog.push({
             text: 'Game cleared!',
@@ -718,14 +724,16 @@ var SceneVoltorb = new Phaser.Class ({
         dialog.push({
             text: 'Level ' + new_level + '!',
             selection_type: 0,
-            handler: null
+            handler: h
         });
+
+        /*
         dialog.push({
             text: 'Play Voltorb Flip at level ' + new_level + '?',
             selection_type: 1,
             items: ['Yes', 'No'],
             handler: [null, null]
-        });
+        });*/
     
         var data = {
             dialog: dialog,

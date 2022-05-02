@@ -183,11 +183,11 @@ export class SceneDialog extends Phaser.Scene {
 
     preload() {      
         this.canvas = this.sys.game.canvas;
-        this.load.image('text_box', 'dialog_frame.png');
+        this.load.image('text_box', 'assets/dialog_frame.png');
 
-        this.load.spritesheet('waiting_arrow', 'arrow_wait.png',
+        this.load.spritesheet('waiting_arrow', 'menus/arrow_wait.png',
             {frameWidth: 10, frameHeight: 10} );
-        this.load.spritesheet('alphabet_grey_6', 'alphabets/alphabet_grey_6.png',
+        this.load.spritesheet('alphabet_grey_6', 'menus/alphabets/alphabet_grey_6.png',
             {frameWidth: 6, frameHeight: 13} );
     }
 

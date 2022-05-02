@@ -89,8 +89,8 @@ var SceneVoltorb = new Phaser.Class ({
 
         this.load.image('main', 'assets/voltorb_flip.png');
         this.load.image('atlas', 'assets/atlas.png');
-        this.load.atlas('atlas_main', 'atlas.png', 'json/atlas.json');
-        this.load.atlas('atlas_anim', 'atlas_anim.png', 'json/atlas.json');
+        this.load.atlas('atlas_main', 'assets/atlas.png', 'json/atlas.json');
+        this.load.atlas('atlas_anim', 'assets/atlas_anim.png', 'json/atlas.json');
 
         this.load.spritesheet('digits', 'assets/digits.png',
             {frameWidth: 6, frameHeight: 8});

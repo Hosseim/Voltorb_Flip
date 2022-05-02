@@ -87,18 +87,18 @@ var SceneVoltorb = new Phaser.Class ({
     preload: function() {
         this.canvas = this.sys.game.canvas;
 
-        this.load.image('main', 'voltorb_flip.png');
-        this.load.image('atlas', 'atlas.png');
-        this.load.atlas('atlas_main', 'atlas.png', 'atlas.json');
-        this.load.atlas('atlas_anim', 'atlas_anim.png', 'atlas.json');
+        this.load.image('main', 'assets/voltorb_flip.png');
+        this.load.image('atlas', 'assets/atlas.png');
+        this.load.atlas('atlas_main', 'atlas.png', 'json/atlas.json');
+        this.load.atlas('atlas_anim', 'atlas_anim.png', 'json/atlas.json');
 
-        this.load.spritesheet('digits', 'digits.png',
+        this.load.spritesheet('digits', 'assets/digits.png',
             {frameWidth: 6, frameHeight: 8});
-        this.load.spritesheet('alphabet_white_7', 'alphabets/alphabet_white_7.png',
+        this.load.spritesheet('alphabet_white_7', 'menus/alphabets/alphabet_white_7.png',
             {frameWidth: 7, frameHeight: 13} );
 
-        this.load.json('distribution', 'distribution.json');
-        this.load.json('animations', 'animations.json');
+        this.load.json('distribution', 'json/distribution.json');
+        this.load.json('animations', 'json/animations.json');
 
     },
 

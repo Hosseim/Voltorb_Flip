@@ -21,14 +21,17 @@ const LINE_SIZE = 37;
                 x += (diff/2);
             }
         }
-
+ 
         var alphabet = 'alphabet_' + color + '_' + size;
-        alphabet = 'alphabet';
-
+        //alphabet = 'alphabet_white_7';
+        console.log('Writing ' + text + ' in alphabet ' + alphabet);
 
         var offset = 0;
-        rt.clear();
+        if (typeof(rt) == 'undefined' || rt == null) {
+            rt = scene.add.renderTexture(config.x, config.y, SCREEN_WIDTH, LINE_HEIGHT);
+        }
 
+        rt.clear();
         rt.beginDraw();
 
         var x = 0;
@@ -184,7 +187,7 @@ export class SceneDialog extends Phaser.Scene {
 
         this.load.spritesheet('waiting_arrow', 'arrow_wait.png',
             {frameWidth: 10, frameHeight: 10} );
-        this.load.spritesheet('alphabet', 'alphabets/alphabet_grey_6.png',
+        this.load.spritesheet('alphabet_grey_6', 'alphabets/alphabet_grey_6.png',
             {frameWidth: 6, frameHeight: 13} );
     }
 
@@ -212,8 +215,6 @@ export class SceneDialog extends Phaser.Scene {
         this.first_line = DialogBox.createLabel(this, config);
         config.y += LINE_HEIGHT;
         this.second_line = DialogBox.createLabel(this, config);
-
-        //this.first_line = DialogBox.createLabel(this, config);
 
         this.arrow = this.physics.add.sprite(this.x, this.y, 'waiting_arrow').setOrigin(0,0);
         //this.first_line.setDepth(2);
@@ -377,7 +378,7 @@ export class SceneDialog extends Phaser.Scene {
     }
 
     updateText() {
-        console.log("this.dialog_line = " + this.dialog_line + " & this.dialog.length = " + this.dialog.length);
+        console.log("updatText : this.dialog_line = " + this.dialog_line + " & this.dialog.length = " + this.dialog.length);
         if (this.dialog_line < this.dialog.length) {
             this.lines_read = 0; //line as displayed on the screen
             this.text = this.processText(this.dialog[this.dialog_line].text);

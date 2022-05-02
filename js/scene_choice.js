@@ -65,7 +65,7 @@ export var SceneChoice = new Phaser.Class({
         var config = {
             x: 0,
             y: 0,
-            text: 'ABC',
+            text: '',
             size: 6,
             color: 'grey'
         }
@@ -88,6 +88,7 @@ export var SceneChoice = new Phaser.Class({
         this.highlight = this.add.image(x, y, 'highlight_item').setOrigin(0,0);
         this.highlight.setDepth(1);
 
+        //TODO
         for (var i = 0; i < nb; i++) {
         	items.push(this.add.image(x, y, 'menu_item').setOrigin(0, 0));
         	var x_text = x + items[i].width/2;
@@ -97,6 +98,7 @@ export var SceneChoice = new Phaser.Class({
                 x: x_text, 
                 y: y_text, 
                 text: this.data.items[i],
+                size: 6
             });//.setOrigin(0, 0);
         	y += MENU_ITEM_HEIGHT;
         }

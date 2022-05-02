@@ -1,3 +1,4 @@
+import {DialogBox} from './scene_dialog.js';
 import {SceneDialog} from './scene_dialog.js';
 import {SceneChoice} from './scene_choice.js';
 
@@ -8,14 +9,24 @@ const TILE_BORDER = 4;
 const NB_ROWS = 5;
 const NB_COLUMNS = 5;
 
-const MEMO_POS = {X: 198, Y: 76};
+const MEMO_INITIAL_POS = {X: 256, Y: 76};
+const MEMO_POS = {X: 197, Y: 76};
+const MEMO_BUTTON_POS = {X: 197, Y: 9};
+const MEMO_TILE_INITIAL_POS = [
+    {X: 259, Y: 79},
+    {X: 283, Y: 79},
+    {X: 259, Y: 103},
+    {X: 283, Y: 103}
+];
 const MEMO_TILE_POS = [
-    {X: 202, Y: 80},
-    {X: 226, Y: 80},
-    {X: 202, Y: 104},
-    {X: 226, Y: 104}
+    {X: 200, Y: 79},
+    {X: 224, Y: 79},
+    {X: 200, Y: 103},
+    {X: 224, Y: 103}
 ];
 const MEMO_TILE_SIZE = {X: 24, Y: 24};
+
+const MEMO_LABEL_POS = { X: 210, Y: 35}
 const OPEN_MEMO_POS = {X: 198, Y: 10};
 const OPEN_MEMO_SIZE = {X: 52, Y: 60};
 
@@ -39,13 +50,10 @@ var SceneVoltorb = new Phaser.Class ({
 
     initData: function(data) {
         this.data = data;
+        this.timer = 0;
 
-        if (this.data.level != null) {
-            this.level = this.data.level;
-        }
-        else {
-            this.level = 1;
-        }
+        this.level = 1;
+
         // this.cameras.main.setBackgroundColor(BACKGROUND_COLOR);
 
         //tiles grid
@@ -86,6 +94,8 @@ var SceneVoltorb = new Phaser.Class ({
 
         this.load.spritesheet('digits', 'digits.png',
             {frameWidth: 6, frameHeight: 8});
+        this.load.spritesheet('alphabet_white_7', 'alphabets/alphabet_white_7.png',
+            {frameWidth: 7, frameHeight: 13} );
 
         this.load.json('distribution', 'distribution.json');
         this.load.json('animations', 'animations.json');
@@ -116,12 +126,7 @@ var SceneVoltorb = new Phaser.Class ({
                 t.spark.setVisible(false);
                 t.spark.setDepth(10);
                 t.frame = 0;
-/*
-                if (t.value == 0) {
-                    t.explode = this.physics.add.sprite(t.x, t.y, 'atlas_anim', 'explode_1');
-                    t.explode.setVisible(false);
-                    t.explode.setDepth(10);
-                }*/
+
                 y += TILE_SIZE.HEIGHT + INTERSPACE.Y;
             }            
             x += TILE_SIZE.WIDTH + INTERSPACE.X;
@@ -144,17 +149,37 @@ var SceneVoltorb = new Phaser.Class ({
         }
 
         //add memo box
-        this.memo = this.physics.add.sprite(MEMO_POS.X, MEMO_POS.Y, 'atlas_main', 'memo_box').setOrigin(0,0);
+        this.memo = {};
+
+        this.memo.button = this.physics.add.sprite(MEMO_BUTTON_POS.X, MEMO_BUTTON_POS.Y, 'atlas_main', 'memo_button_0').setOrigin(0,0);
+        this.memo.box = this.physics.add.sprite(MEMO_INITIAL_POS.X, MEMO_INITIAL_POS.Y, 'atlas_main', 'memo_box').setOrigin(0,0);
         this.memo.is_open = false;
+        this.memo.frame = 0;
+        this.memo.opening = false;
+        this.memo.closing = false;
+
+        var config = {
+            x: MEMO_LABEL_POS.X,
+            y: MEMO_LABEL_POS.Y,
+            text: 'Open',
+            size: 7,
+            color: 'white'
+        }
+        this.memo.label = [];
+        this.memo.label.push(DialogBox.createLabel(this, config));
+
+        config.y += 16;
+        config.text = 'Memo';
+        this.memo.label.push(DialogBox.createLabel(this, config));
+
 
         this.memo.tiles = [];
 
         for (var k = 0; k < 4; k++) {
             this.memo.tiles.push(
-                this.physics.add.sprite(MEMO_TILE_POS[k].X, MEMO_TILE_POS[k].Y, 'atlas_main', 'tile_' + k + '_memo').setOrigin(0,0).setVisible(false)
+                this.physics.add.sprite(MEMO_TILE_INITIAL_POS[k].X, MEMO_TILE_INITIAL_POS[k].Y, 'atlas_main', 'tile_' + k + '_memo').setOrigin(0,0)
             );
         }
-        this.memo.setVisible(false);
 
         //Set the highlighting sprite
         this.highlight = this.physics.add.sprite(0, 0, 'atlas_main', 'highlight_red');
@@ -167,15 +192,21 @@ var SceneVoltorb = new Phaser.Class ({
                 var x1 = this.grid[i][j].x + TILE_SIZE.WIDTH/2 - TILE_BORDER;
                 var y0 = this.grid[i][j].y - TILE_SIZE.HEIGHT/2 + TILE_BORDER;
                 var y1 = this.grid[i][j].y + TILE_SIZE.HEIGHT/2 - TILE_BORDER;
-                this.grid[i][j].memo.push(this.physics.add.sprite(x0, y0, 'atlas_main', 'index_0_memo').setOrigin(0,0).setVisible(false).setDepth(3));
-                this.grid[i][j].memo.push(this.physics.add.sprite(x1, y0, 'atlas_main', 'index_1_memo').setOrigin(1,0).setVisible(false).setDepth(3));
-                this.grid[i][j].memo.push(this.physics.add.sprite(x0, y1, 'atlas_main', 'index_2_memo').setOrigin(0,1).setVisible(false).setDepth(3));
-                this.grid[i][j].memo.push(this.physics.add.sprite(x1, y1, 'atlas_main', 'index_3_memo').setOrigin(1,1).setVisible(false).setDepth(3));
-/*
-                for (var k = 0; k < 4; k++) {
-                    this.grid[i][j].memo[k].setVisible(false);
-                }*/
+                this.grid[i][j].memo.push(this.physics.add.sprite(x0, y0, 'atlas_main', 'index_0_memo').setVisible(false).setOrigin(0,0).setDepth(3));
+                this.grid[i][j].memo.push(this.physics.add.sprite(x1, y0, 'atlas_main', 'index_1_memo').setVisible(false).setOrigin(1,0).setDepth(3));
+                this.grid[i][j].memo.push(this.physics.add.sprite(x0, y1, 'atlas_main', 'index_2_memo').setVisible(false).setOrigin(0,1).setDepth(3));
+                this.grid[i][j].memo.push(this.physics.add.sprite(x1, y1, 'atlas_main', 'index_3_memo').setVisible(false).setOrigin(1,1).setDepth(3));
             }
+        }
+
+        const closeMemo = () => {
+            this.memo.closing = true;
+            this.highlight.setFrame('highlight_red');
+        }
+
+        const openMemo = () => {
+            this.memo.opening = true;
+            this.highlight.setFrame('highlight_yellow');
         }
 
         const clickHandler = (x, y) => {
@@ -184,29 +215,21 @@ var SceneVoltorb = new Phaser.Class ({
                 && y > OPEN_MEMO_POS.Y && y < OPEN_MEMO_POS.Y + OPEN_MEMO_SIZE.Y) {
 
                 //TODO: Add click animation and modify label "open/close"
-                //NOT ON ALREADY DISCOVERED TILES ?
                 this.memo.is_open = !this.memo.is_open;
-                this.memo.setVisible(this.memo.is_open);
+                //this.memo.box.setVisible(this.memo.is_open);
 
                 if (this.memo.is_open) {
-                    for (var k = 0; k < 4; k++) {
-                        var v = this.grid[this.current.i][this.current.j].memo[k].visible;
-                        this.memo.tiles[k].setVisible(v);
-                    }
-                    this.highlight.setFrame('highlight_yellow');
+                    openMemo();
                 }
                 else {
-                    for (var k = 0; k < 4; k++) {
-                        this.memo.tiles[k].setVisible(false);
-                    }
-                    this.highlight.setFrame('highlight_red');
+                    closeMemo();
                 }
             }
 
             //Clicking on memos
             //TODO: add possibility to select several tiles at the same time with Ctrl
-            else if (this.memo.is_open && x > MEMO_POS.X && x < MEMO_POS.X + this.memo.width 
-                && y > MEMO_POS.Y && y < MEMO_POS.Y + this.memo.height) {
+            else if (this.memo.is_open && x > MEMO_POS.X && x < MEMO_POS.X + this.memo.box.width 
+                && y > MEMO_POS.Y && y < MEMO_POS.Y + this.memo.box.height) {
                 
                 //Identify which 
                 var i = this.current.i;
@@ -217,10 +240,18 @@ var SceneVoltorb = new Phaser.Class ({
                         if (x > MEMO_TILE_POS[k].X && x < MEMO_TILE_POS[k].X + MEMO_TILE_SIZE.X &&
                             y > MEMO_TILE_POS[k].Y && y < MEMO_TILE_POS[k].Y + MEMO_TILE_SIZE.Y) {
 
+                            var frame_name = 'tile_' + k + '_memo';
+
+                            if (this.memo.tiles[k].frame.name == frame_name) {
+                                frame_name = 'tile_' + k + '_selected_memo';
+                            }
+
+                            this.memo.tiles[k].setFrame(frame_name);
+
                             var v = this.grid[i][j].memo[k].visible;
 
                             this.grid[i][j].memo[k].setVisible(!v);
-                            this.memo.tiles[k].setVisible(!v);
+                            //this.memo.tiles[k].setVisible(!v);*/
                             return;
                         }
                     }
@@ -240,11 +271,6 @@ var SceneVoltorb = new Phaser.Class ({
                         var ymax = t.y + TILE_SIZE.WIDTH/2;
 
                         if (x >= xmin && x < xmax && y >= ymin && y < ymax) {
-
-                            // if (this.memo.is_open && !this.grid[i][j].hidden) {
-                            //     return;
-                            // }
-
                             this.selectTile(i, j);
                         }
                     }
@@ -275,7 +301,6 @@ var SceneVoltorb = new Phaser.Class ({
                 case 'Backspace':
                     console.log("Fin de la scène");
                     this.scene.stop(this.scene.key);
-                    // this.scene.resume(this.data.origin_scene);
                     break;
 
                 case 'Enter':
@@ -292,9 +317,7 @@ var SceneVoltorb = new Phaser.Class ({
                         this.current.i--;
                         this.highlight.x -= (INTERSPACE.X + TILE_SIZE.WIDTH);
 
-                        if (this.memo.is_open) {
-                            this.initMemoIndexes(this.current.i, this.current.j);
-                        }
+                        this.initMemoIndexes(this.current.i, this.current.j);
                     }
                     break;
 
@@ -303,9 +326,7 @@ var SceneVoltorb = new Phaser.Class ({
                         this.current.j--;
                         this.highlight.y -= (INTERSPACE.X + TILE_SIZE.HEIGHT);
 
-                        if (this.memo.is_open) {
-                            this.initMemoIndexes(this.current.i, this.current.j);
-                        }
+                        this.initMemoIndexes(this.current.i, this.current.j);
                     }
                     break;
 
@@ -314,9 +335,7 @@ var SceneVoltorb = new Phaser.Class ({
                         this.current.i++;
                         this.highlight.x += (INTERSPACE.X + TILE_SIZE.WIDTH);
 
-                        if (this.memo.is_open) {
-                            this.initMemoIndexes(this.current.i, this.current.j);
-                        }
+                        this.initMemoIndexes(this.current.i, this.current.j);
                     }
                     break;
 
@@ -325,9 +344,7 @@ var SceneVoltorb = new Phaser.Class ({
                         this.current.j++;
                         this.highlight.y += (INTERSPACE.X + TILE_SIZE.HEIGHT);
 
-                        if (this.memo.is_open) {
-                            this.initMemoIndexes(this.current.i, this.current.j);
-                        }
+                        this.initMemoIndexes(this.current.i, this.current.j);
                     }
                     break;
 
@@ -355,15 +372,18 @@ var SceneVoltorb = new Phaser.Class ({
         const startGame = () => {
             this.startGame();
         }
+        const exitGame = () => {
+            this.scene.stop();
+        }
 
         dialog.push({
-            text: 'Placeholder',
+            text: 'Le jeu est au niveau ' + this.level,
             selection_type: 0,
             handler: null
         });
 
         dialog.push({
-            text: 'Question?',
+            text: 'Jouer ?',
             selection_type: 1,
             items: ['A', 'B'],
             handlers: [startGame, null]
@@ -395,17 +415,11 @@ var SceneVoltorb = new Phaser.Class ({
                 
                 var t = this.grid[i][j];
                 t.value = 1;
-
-                //t.sprite.setFrame('hidden');
-                //t.spark.setFrame('spark_1');
                 t.frame = 0;
-
-                /*if (t.value == 0) {
-                    t.explode = this.physics.add.sprite(t.x, t.y, 'atlas_anim', 'explode_1');
-                    t.explode.setVisible(false);
-                    t.explode.setDepth(10);
-                }*/
             }            
+        }
+        for (var k = 0; k < this.memo.tiles.length; k++) {
+            this.memo.tiles[k].setFrame('tile_' + k + '_memo');
         }
         this.setValue(2, this.distrib[2]);
         this.setValue(3, this.distrib[3]);
@@ -417,15 +431,17 @@ var SceneVoltorb = new Phaser.Class ({
             var sum_pts = 0, sum_v = 0;
 
             for (var j = 0; j < NB_ROWS; j++) {
-                this.grid[i][j].playable = (i != NB_COLUMNS && j != NB_ROWS);
-                this.grid[i][j].hidden = (i != NB_COLUMNS && j != NB_ROWS);
-                this.grid[i][j].memo = [];
-
+                var t = this.grid[i][j];
+                t.playable = (i != NB_COLUMNS && j != NB_ROWS);
+                t.hidden = (i != NB_COLUMNS && j != NB_ROWS);
+                for (var k = 0; k < 4; k++) {
+                    t.memo[k].setVisible(false);
+                }
                 if (this.grid[i][j].value == 0) {
                     sum_v++;
                 }
                 else {
-                    sum_pts += this.grid[i][j].value;
+                    sum_pts += t.value;
                 }
             }
 
@@ -438,16 +454,14 @@ var SceneVoltorb = new Phaser.Class ({
         for (var j = 0; j < NB_ROWS; j++) {
             var sum_pts = 0, sum_v = 0;
 
-            //if (this.data.restart) {
-                for (var i = 0; i < NB_COLUMNS; i++) {
-                    if (this.grid[i][j].value == 0) {
-                        sum_v++;
-                    }
-                    else {
-                        sum_pts += this.grid[i][j].value;
-                    }
+            for (var i = 0; i < NB_COLUMNS; i++) {
+                if (this.grid[i][j].value == 0) {
+                    sum_v++;
                 }
-            //}
+                else {
+                    sum_pts += this.grid[i][j].value;
+                }
+            }
             this.grid[NB_COLUMNS][j].nb_voltorbs = sum_v;
             this.grid[NB_COLUMNS][j].nb_pts = sum_pts;
 
@@ -465,6 +479,12 @@ var SceneVoltorb = new Phaser.Class ({
     },
 
     update: function(time, delta) {
+        if (this.timer > 0) {
+            this.timer--;
+            console.log("timer at " + this.timer);
+            return;
+        }
+
         for (var i = 0; i < this.tiles_to_process.length; i++) {
             var t = this.tiles_to_process[i];
 
@@ -486,11 +506,9 @@ var SceneVoltorb = new Phaser.Class ({
                     else if (value == 2) {
                         frame = 'flip_right';
                         frame = 'flip_' + t.value;
-                        //t.flipping_number.setVisible(true);
                     }
                     else {
                         frame = 'tile_' + t.value;
-                        //t.flipping_number.setVisible(false);
                     }
                     t.sprite.setFrame(frame);
                     t.frame++;
@@ -513,7 +531,6 @@ var SceneVoltorb = new Phaser.Class ({
                 break;
 
                 case 2: //spark
-
                 var length = this.animations.spark.frames.length;
                 if (t.frame < length) {
                     var value = this.animations.spark.frames[t.frame];
@@ -563,11 +580,9 @@ var SceneVoltorb = new Phaser.Class ({
                     }
                     else if (value == 2) {
                         frame = 'flip_left';
-                        //t.flipping_number.setVisible(true);
                     }
                     else {
                         frame = 'hidden';
-                        //t.flipping_number.setVisible(false);
                     }
                     t.sprite.setFrame(frame);
                     t.frame++;
@@ -587,7 +602,6 @@ var SceneVoltorb = new Phaser.Class ({
                         this.flip_all = false;
                         this.unflip_all = true;
                         this.leftToRight(this.left_to_right_column);
-                        //this.gameOver();
                     }
                     else if (this.unflip_all) {
                         this.left_to_right_column++;
@@ -605,7 +619,115 @@ var SceneVoltorb = new Phaser.Class ({
                 }
                 break;
             }
-        }        
+        }
+
+        if (this.memo.opening) {
+            console.log("opening");
+            var length = this.animations.open_memo.frames.length;
+            if (this.memo.frame < length) {
+                var value = this.animations.open_memo.frames[this.memo.frame];
+                var frame = '';
+
+                if (this.memo.frame == 0 || value != this.animations.open_memo.frames[this.memo.frame - 1]) {
+                    switch (value) {
+                        case 0:
+                        this.memo.button.setFrame('memo_button_0'); //image clic
+                        break;
+
+                        case 1:
+                        this.memo.button.setFrame('memo_button_1'); //normal
+                        break;
+
+                        case 2:
+                        this.slideMemoBox(-10);
+                        //this.memo.box.x = 246;
+                        break;
+
+                        case 3:
+                        this.slideMemoBox(-18);
+                        //this.memo.box.x = 228;
+                        break;
+
+                        case 4:
+                        this.slideMemoBox(-31);
+                        //this.memo.box.x = 197;
+                        break;
+
+                        case 5:
+                        this.slideMemoBox(-4);
+                        //this.memo.box.x = 193;
+                        break;
+
+                        case 6:
+                        this.slideMemoBox(4);
+                        //this.memo.box.x = 197;
+
+                        default:
+                        break;
+                    }
+                }
+                this.memo.frame++;
+            }
+            else {
+                this.memo.opening = false;
+                this.memo.frame = 0;
+            }
+        }
+        else if (this.memo.closing) {
+            console.log("closing");
+            var length = this.animations.open_memo.frames.length;
+            if (this.memo.frame < length) {
+                var value = this.animations.open_memo.frames[this.memo.frame];
+                var frame = '';
+
+                if (this.memo.frame == 0 || value != this.animations.open_memo.frames[this.memo.frame - 1]) {
+                    switch (value) {
+                        case 0:
+                        this.memo.button.setFrame('memo_button_0'); //image clic
+                        break;
+
+                        case 1:
+                        this.memo.button.setFrame('memo_button_1'); //normal
+                        break;
+
+                        case 2:
+                        this.slideMemoBox(-4);
+                        //this.memo.box.x = 193;
+                        break;
+
+                        case 3:
+                        this.slideMemoBox(35);
+                        //this.memo.box.x = 228;
+                        break;
+
+                        case 4:
+                        this.slideMemoBox(18);
+                        //this.memo.box.x = 246;
+                        break;
+
+                        case 5:
+                        this.slideMemoBox(10);
+                        //this.memo.box.x = 256;
+                        break;
+
+                        default:
+                        break;
+                    }
+                }
+                this.memo.frame++;
+            }
+            else {
+                this.memo.closing = false;
+                this.memo.frame = 0;
+            }
+        }
+    },
+
+    slideMemoBox: function(offset) {
+        this.memo.box.x += offset;
+        for (var k = 0; k < this.memo.tiles.length; k++) {
+            this.memo.tiles[k].x += offset;
+        }
     },
 
     selectTile: function(i, j) {
@@ -622,7 +744,6 @@ var SceneVoltorb = new Phaser.Class ({
 
         this.highlight.x = t.x;
         this.highlight.y = t.y;
-
         
         if (this.memo.is_open) {
             this.initMemoIndexes(i, j);
@@ -638,7 +759,8 @@ var SceneVoltorb = new Phaser.Class ({
         var t = this.grid[i][j];
         for (var k = 0; k < 4; k++) {
             var v = t.memo[k].visible;
-            this.memo.tiles[k].setVisible(v);
+            //this.memo.tiles[k].setVisible(v);
+            this.memo.tiles[k].setFrame('tile_' + k + '_' + (v ? 'selected_' : '') + 'memo');
         }
     },
 
@@ -683,13 +805,14 @@ var SceneVoltorb = new Phaser.Class ({
         t.nb.setFrame(t.nb_voltorbs);
     },
 
-    flip: function(tile) {
-        this.busy = true;
-
-        tile.status = 1;
-
+    flip: function(tile) {    
         if (tile.hidden) {
+            this.busy = true;
             tile.hidden = false;
+            for (var k = 0; k < this.memo.tiles.length; k++) {
+                this.memo.tiles[k].setFrame('tile_' + k + '_memo');
+                tile.memo[k].setVisible(false);
+            }
             tile.status = 1; //flip
             tile.sprite.setDepth(4);
             this.tiles_to_process.push(tile);
@@ -698,16 +821,21 @@ var SceneVoltorb = new Phaser.Class ({
     },
 
     unflip: function(tile) {
-        console.log('unflipping tile (' + tile.x + ', ' + tile.y + ')');
-        this.busy = true;
-        tile.hidden = true;
-        tile.status = 4; //flip back
-        tile.sprite.setDepth(4);
-        this.tiles_to_process.push(tile);
+        if (!tile.hidden) {
+            this.busy = true;
+            tile.status = 4; //flip back
+            tile.hidden = true;
+            for (var k = 0; k < 4; k++) {
+                tile.memo[k].setVisible(false);
+            }
+            tile.sprite.setDepth(2);
+            this.tiles_to_process.push(tile);
+        }
     },
 
     winGame: function() {
-        var new_level = Math.min(this.level_max, this.level+1); 
+        this.level = Math.min(this.level_max, this.level+1);
+        console.log("new level = " + this.level);
         
         const h = (scene) => { 
             scene.scene.sleep(); //dialog sleep
@@ -722,40 +850,21 @@ var SceneVoltorb = new Phaser.Class ({
             handler: null
         });
         dialog.push({
-            text: 'Level ' + new_level + '!',
+            text: 'Level ' + this.level + '!',
             selection_type: 0,
             handler: h
         });
-
-        /*
-        dialog.push({
-            text: 'Play Voltorb Flip at level ' + new_level + '?',
-            selection_type: 1,
-            items: ['Yes', 'No'],
-            handler: [null, null]
-        });*/
     
         var data = {
             dialog: dialog,
             origin_scene: this.scene,
-            level: new_level,
+            level: this.level,
             restart: true,
         };
 
         // this.cameras.main.fadeOut(200);
         this.scene.pause();
         this.scene.wake('scene_dialog', data);
-    },
-
-    endLevel: function() {
-        var dialog = [];
-        dialog.push({
-            text: "Ligne1\nLigne2\nLigne3", 
-            selection_type: 0, //No selection
-            handler: null
-        });
-        this.scene.wake('scene_dialog', {style:1, origin_scene: this, dialog: dialog} );  
-
     },
 
     flipAll: function() {
@@ -773,7 +882,7 @@ var SceneVoltorb = new Phaser.Class ({
 
     loseGame: function() {
 
-        var new_level = Math.max(Math.min(this.level, this.nb_flipped), 1);
+        this.level = Math.max(Math.min(this.level, this.nb_flipped), 1);
 
         const t = (scene) => {
             scene.scene.sleep();
@@ -803,13 +912,6 @@ var SceneVoltorb = new Phaser.Class ({
         this.scene.wake('scene_dialog', data);
     },
 
-    gameOver: function() {
-        this.wait(4);
-        this.leftToRight();
-        //TODO: le jeu est redescendu
-        //this.startGame();
-    },
-
     //Do nothing for nbFrames frames
     wait: function(nbFrames) {
         this.timer = nbFrames;
@@ -817,7 +919,6 @@ var SceneVoltorb = new Phaser.Class ({
 
     leftToRight: function(column) {
         console.log("left to right...");
-        //this.left_to_right_column++;
 
         for (var j = 0; j < NB_COLUMNS; j++) {
             var t = this.grid[column][j];

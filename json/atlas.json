@@ -89,21 +89,39 @@
 			"filename": "tile_3_memo",
 			"frame": {"x":72,"y":140,"w":24,"h":24}
 		},
+
+		{
+			"filename": "tile_0_selected_memo",
+			"frame": {"x":0,"y":164,"w":24,"h":24}
+		},
+		{
+			"filename": "tile_1_selected_memo",
+			"frame": {"x":24,"y":164,"w":24,"h":24}
+		},
+		{
+			"filename": "tile_2_selected_memo",
+			"frame": {"x":48,"y":164,"w":24,"h":24}
+		},
+		{
+			"filename": "tile_3_selected_memo",
+			"frame": {"x":72,"y":164,"w":24,"h":24}
+		},
+
 		{
 			"filename": "index_0_memo",
-			"frame": {"x":84,"y":168,"w":7,"h":7}
+			"frame": {"x":96,"y":140,"w":7,"h":7}
 		},
 		{
 			"filename": "index_1_memo",
-			"frame": {"x":91,"y":168,"w":7,"h":7}
+			"frame": {"x":103,"y":140,"w":7,"h":7}
 		},
 		{
 			"filename": "index_2_memo",
-			"frame": {"x":98,"y":168,"w":7,"h":7}
+			"frame": {"x":96,"y":147,"w":7,"h":7}
 		},
 		{
 			"filename": "index_3_memo",
-			"frame": {"x":105,"y":168,"w":7,"h":7}
+			"frame": {"x":103,"y":147,"w":7,"h":7}
 		},
 
 
@@ -164,8 +182,18 @@
 		{
 			"filename": "spark_3",
 			"frame": {"x":120,"y":120,"w":46,"h":47}
-		}
+		},
 
-		
+
+
+
+		{
+			"filename": "memo_button_0",
+			"frame": {"x":0,"y":196,"w":54,"h":62}
+		},
+		{
+			"filename": "memo_button_1",
+			"frame": {"x":54,"y":196,"w":54,"h":62}
+		}		
 	]
 }

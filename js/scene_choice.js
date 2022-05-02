@@ -41,10 +41,10 @@ export var SceneChoice = new Phaser.Class({
 
     preload: function () {      
         this.canvas = this.sys.game.canvas;
-        this.load.image('yes_or_no', 'yes_or_no.png');
-        this.load.image('select', 'selection.png');
-        this.load.image('menu_item', 'menu_item.png');
-        this.load.image('highlight_item', 'highlight_item.png');
+        this.load.image('yes_or_no', 'menus/yes_or_no.png');
+        this.load.image('select', 'menus/selection.png');
+        this.load.image('menu_item', 'assets/menu_item.png');
+        this.load.image('highlight_item', 'assets/highlight_item.png');
         //make the border transparent
     },
 
